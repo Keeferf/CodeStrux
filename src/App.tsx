@@ -84,7 +84,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-grey-950 text-parchment-300">
-      <Header model={model} />
+      <Header model={model} onModelChange={setModel} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           sessions={sessions}
