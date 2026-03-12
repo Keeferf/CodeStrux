@@ -1,6 +1,4 @@
 import { ChevronRight, Minus, Square, X } from "lucide-react";
-// Tauri v2: "@tauri-apps/api/window" → getCurrentWindow()
-// Tauri v1: "@tauri-apps/api/window" → appWindow (named export)
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface HeaderProps {
@@ -16,7 +14,7 @@ export function Header({ model }: HeaderProps) {
 
   return (
     <header
-      className="h-11 shrink-0 flex items-center justify-between bg-slate-grey-900 border-b border-slate-grey-800"
+      className="h-9 shrink-0 flex items-center justify-between bg-slate-grey-900 border-b border-slate-grey-800"
       style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     >
       {/* Left: Logo + App name */}
