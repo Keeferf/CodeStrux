@@ -1,12 +1,19 @@
 import { WindowControls } from "./WindowControls";
-import { ModelSearch } from "./ModelSearch";
+import { ModelSearch } from "../../../ModelSearch";
 
 interface HeaderProps {
   model: string;
   onModelChange: (model: string) => void;
+  downloadedModelIds: string[];
+  onDownloadStart: (modelId: string, filename: string) => void;
 }
 
-export function Header({ model, onModelChange }: HeaderProps) {
+export function Header({
+  model,
+  onModelChange,
+  downloadedModelIds,
+  onDownloadStart,
+}: HeaderProps) {
   return (
     <header
       className="h-9 shrink-0 flex items-center justify-between bg-slate-grey-900 border-b border-slate-grey-800"
@@ -23,8 +30,11 @@ export function Header({ model, onModelChange }: HeaderProps) {
         </span>
       </div>
 
-      {/* Center: Model search */}
-      <ModelSearch model={model} onModelChange={onModelChange} />
+      {/* Center: Model search / download */}
+      <ModelSearch
+        downloadedModelIds={downloadedModelIds}
+        onDownloadStart={onDownloadStart}
+      />
 
       {/* Right: Window controls */}
       <WindowControls />

@@ -10,22 +10,28 @@ name = "codestrux_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.5.6", features = [] }
 
 [dependencies]
-tauri          = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-tauri-plugin-store  = "2"
+tauri          = { version = "2.10.3", features = [] }
+tauri-plugin-opener = "2.5.3"
+tauri-plugin-store  = "2.4.2"
 
-serde          = { version = "1", features = ["derive"] }
-serde_json     = "1"
+serde          = { version = "1.0.228", features = ["derive"] }
+serde_json     = "1.0.149"
 sysinfo        = "0.38.4"
 wgpu           = { version = "28.0.0", features = [] }
 
 # HTTP streaming for HF Inference API
-reqwest        = { version = "0.13", default-features = false, features = ["rustls", "json", "stream"] }
-futures-util   = "0.3"
-tokio          = { version = "1", features = ["sync"] }
+reqwest = { version = "0.13.2", default-features = false, features = [
+  "rustls",
+  "json",
+  "stream",
+  "gzip",
+  "brotli"
+] }
+futures-util   = "0.3.32"
+tokio          = { version = "1.50.0", features = ["sync", "fs", "io-util"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55.0"
