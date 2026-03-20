@@ -12,8 +12,11 @@
     "windows": [
       {
         "title": "codestrux",
-        "fullscreen": true,
-        "decorations": false
+        "decorations": false,
+        "shadow": true,
+        "maximized": true,
+        "minWidth": 1280,
+        "minHeight": 800
       }
     ],
     "security": {

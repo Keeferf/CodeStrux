@@ -25,8 +25,12 @@ pub async fn start_download(
     sanitise_filename(&filename)?;
     let safe_id = sanitise_model_id(&model_id)?;
 
-    state.reset();
-    let cancel = state.cancel_flag();
+    let (cancel, _permit) = state.start().map_err(|e| {
+        let _ = app.emit("download-error", &e);
+        e
+    })?;
+    // _permit is held for the duration of this function and dropped on return,
+    // releasing the download slot whether we succeed, error, or get cancelled.
 
     let url = format!(
         "https://huggingface.co/{}/resolve/main/{}",

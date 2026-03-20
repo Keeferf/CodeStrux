@@ -27,7 +27,7 @@ export function WindowControls() {
       </button>
       <button
         onClick={close}
-        className="flex items-center justify-center w-9 h-full text-slate-grey-400 hover:text-parchment-100 hover:bg-brick-red-800 transition-colors"
+        className="flex items-center justify-center w-9 h-full text-slate-grey-400 hover:text-parchment-100 hover:bg-red-800 transition-colors"
         aria-label="Close"
       >
         <X size={13} strokeWidth={2} />
