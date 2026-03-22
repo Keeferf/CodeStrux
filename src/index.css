@@ -1,0 +1,126 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Cascadia+Code:wght@400;600&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/@fontsource/cascadia-code/index.css");
+@import "tailwindcss";
+
+@theme {
+  /* ── Neutrals ───────────────────────────────────────────────────────────── */
+  --color-slate-grey-50: #f1f2f4;
+  --color-slate-grey-100: #e3e4e8;
+  --color-slate-grey-200: #c6cad2;
+  --color-slate-grey-300: #aaafbb;
+  --color-slate-grey-400: #8e95a4;
+  --color-slate-grey-500: #717a8e;
+  --color-slate-grey-600: #5b6271;
+  --color-slate-grey-700: #444955;
+  --color-slate-grey-800: #2d3139;
+  --color-slate-grey-900: #17181c;
+  --color-slate-grey-950: #101114;
+
+  /* ── Surfaces ─────────────────────────────────────────────────────────────── */
+  --color-shadow-grey-50: #f3f2f2;
+  --color-shadow-grey-100: #e6e5e5;
+  --color-shadow-grey-200: #cecaca;
+  --color-shadow-grey-300: #b5b0b0;
+  --color-shadow-grey-400: #9c9696;
+  --color-shadow-grey-500: #837c7c;
+  --color-shadow-grey-600: #696363;
+  --color-shadow-grey-700: #4f4a4a;
+  --color-shadow-grey-800: #353131;
+  --color-shadow-grey-900: #1a1919;
+  --color-shadow-grey-950: #121111;
+
+  /* ── Text ────────────────────────────────────────────────────────────────── */
+  --color-parchment-50: #f6f2ef;
+  --color-parchment-100: #ede6de;
+  --color-parchment-200: #dbccbd;
+  --color-parchment-300: #c9b39c;
+  --color-parchment-400: #b7997b;
+  --color-parchment-500: #a4805b;
+  --color-parchment-600: #846648;
+  --color-parchment-700: #634d36;
+  --color-parchment-800: #423324;
+  --color-parchment-900: #211a12;
+  --color-parchment-950: #17120d;
+
+  --color-bone-50: #f6f4ef;
+  --color-bone-100: #ede9de;
+  --color-bone-200: #dbd3bd;
+  --color-bone-300: #c9bd9c;
+  --color-bone-400: #b7a77b;
+  --color-bone-500: #a4915b;
+  --color-bone-600: #847448;
+  --color-bone-700: #635736;
+  --color-bone-800: #423a24;
+  --color-bone-900: #211d12;
+  --color-bone-950: #17140d;
+
+  /* ── Soft accent ─────────────────────────────────────────────────────────── */
+  --color-khaki-beige-50: #f4f2f0;
+  --color-khaki-beige-100: #eae6e1;
+  --color-khaki-beige-200: #d5cdc3;
+  --color-khaki-beige-300: #c0b4a5;
+  --color-khaki-beige-400: #aa9b88;
+  --color-khaki-beige-500: #95826a;
+  --color-khaki-beige-600: #776855;
+  --color-khaki-beige-700: #5a4e3f;
+  --color-khaki-beige-800: #3c342a;
+  --color-khaki-beige-900: #1e1a15;
+  --color-khaki-beige-950: #15120f;
+
+  /* ── Accent — interactions ───────────────────────────────────────────────── */
+  --color-indigo-smoke-50: #f2f4f8;
+  --color-indigo-smoke-100: #e4e8f0;
+  --color-indigo-smoke-200: #c8d1e1;
+  --color-indigo-smoke-300: #abb9d2;
+  --color-indigo-smoke-400: #8fa2c3;
+  --color-indigo-smoke-500: #728bb4;
+  --color-indigo-smoke-600: #5b6f90;
+  --color-indigo-smoke-700: #44536c;
+  --color-indigo-smoke-800: #2d3748;
+  --color-indigo-smoke-900: #161b24;
+  --color-indigo-smoke-950: #0f1118;
+
+  /* ── Status — success ────────────────────────────────────────────────────── */
+  --color-moss-green-50: #f2f5f2;
+  --color-moss-green-100: #e4ebe4;
+  --color-moss-green-200: #c8d7c8;
+  --color-moss-green-300: #acc3ac;
+  --color-moss-green-400: #90af90;
+  --color-moss-green-500: #739b73;
+  --color-moss-green-600: #5c7c5c;
+  --color-moss-green-700: #455d45;
+  --color-moss-green-800: #2e3e2e;
+  --color-moss-green-900: #171f17;
+  --color-moss-green-950: #101610;
+
+  /* ── Status — warning ────────────────────────────────────────────────────── */
+  --color-amber-dust-50: #f8f5ef;
+  --color-amber-dust-100: #f1eadf;
+  --color-amber-dust-200: #e3d5bf;
+  --color-amber-dust-300: #d5bf9f;
+  --color-amber-dust-400: #c7aa7f;
+  --color-amber-dust-500: #b9955f;
+  --color-amber-dust-600: #94774c;
+  --color-amber-dust-700: #6f5939;
+  --color-amber-dust-800: #4a3b26;
+  --color-amber-dust-900: #251d13;
+  --color-amber-dust-950: #19140d;
+
+  /* ── Status — error ──────────────────────────────────────────────────────── */
+  --color-brick-red-50: #f6f1f1;
+  --color-brick-red-100: #ede2e2;
+  --color-brick-red-200: #dbc5c5;
+  --color-brick-red-300: #c9a7a7;
+  --color-brick-red-400: #b78a8a;
+  --color-brick-red-500: #a56c6c;
+  --color-brick-red-600: #845656;
+  --color-brick-red-700: #634040;
+  --color-brick-red-800: #422b2b;
+  --color-brick-red-900: #211515;
+  --color-brick-red-950: #170f0f;
+
+  /* ── Typography ──────────────────────────────────────────────────────────── */
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-body: "IBM Plex Serif", Georgia, serif;
+  --font-mono: "Cascadia Code", "Cascadia Mono", "Fira Code", monospace;
+}
