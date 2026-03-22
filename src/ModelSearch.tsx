@@ -13,8 +13,6 @@ import {
   formatBytes,
   type HFFile,
 } from "./lib/Download";
-import { useHardware } from "./components/hardware/useHardware";
-import { checkCompat } from "./lib/ModalCombatability";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface HFModel {
@@ -33,35 +31,6 @@ interface ModelSearchProps {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CODER_KEYWORDS = [
-  "code",
-  "coder",
-  "codegen",
-  "coding",
-  "starcoder",
-  "deepseek-coder",
-  "wizardcoder",
-  "wizard-coder",
-  "phind",
-  "codellama",
-  "code-llama",
-  "magicoder",
-  "opencoder",
-  "qwen-coder",
-  "qwencoder",
-  "granite-code",
-  "codegemma",
-  "codestral",
-  "devstral",
-  "codeqwen",
-  "code-qwen",
-];
-
-function isCoderModel(id: string): boolean {
-  const lower = id.toLowerCase();
-  return CODER_KEYWORDS.some((kw) => lower.includes(kw));
-}
-
 function formatDownloads(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
@@ -69,13 +38,11 @@ function formatDownloads(n: number): string {
 }
 
 async function searchModels(query: string): Promise<HFModel[]> {
-  const codingQuery = `${query} code`;
   const res = await fetch(
-    `https://huggingface.co/api/models?search=${encodeURIComponent(codingQuery)}&pipeline_tag=text-generation&filter=gguf&limit=20&sort=downloads&direction=-1`,
+    `https://huggingface.co/api/models?search=${encodeURIComponent(query)}&pipeline_tag=text-generation&filter=gguf&limit=20&sort=downloads&direction=-1`,
   );
   const all: HFModel[] = await res.json();
-  const coderOnly = all.filter((m) => isCoderModel(m.id));
-  return (coderOnly.length > 0 ? coderOnly : all).slice(0, 8);
+  return all.slice(0, 8);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -103,8 +70,6 @@ export function ModelSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const { data: hardware } = useHardware({ interval: 0 });
 
   // ── Search logic ──────────────────────────────────────────────────────────
 
@@ -294,7 +259,7 @@ export function ModelSearch({
                   setSelectedIndex(-1);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Search coder models…"
+                placeholder="Search models…"
                 className="flex-1 bg-transparent font-mono text-xs text-parchment-200 placeholder-slate-grey-600 outline-none"
               />
             )}
@@ -325,7 +290,7 @@ export function ModelSearch({
             <div className="absolute top-full left-0 right-0 bg-slate-grey-950 border border-t-0 border-indigo-smoke-700 rounded-b-md overflow-hidden z-50 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
               {results.length === 0 ? (
                 <div className="px-3 py-2 text-xs font-mono text-slate-grey-600">
-                  No coder models found for "{query}"
+                  No models found for "{query}"
                 </div>
               ) : (
                 results.map((m, i) => {
@@ -405,62 +370,56 @@ export function ModelSearch({
                 </div>
               ) : (
                 <div className="max-h-52 overflow-y-auto">
-                  {ggufFiles
-                    .filter((f) =>
-                      hardware
-                        ? checkCompat(f.rfilename, hardware).compatible
-                        : true,
-                    )
-                    .map((f) => {
-                      const key = `${expandedModel!.id}::${f.rfilename}`;
-                      const isDownloading = downloading.has(key);
-                      const isDone = downloadedModelIds.includes(
-                        expandedModel!.id,
-                      );
+                  {ggufFiles.map((f) => {
+                    const key = `${expandedModel!.id}::${f.rfilename}`;
+                    const isDownloading = downloading.has(key);
+                    const isDone = downloadedModelIds.includes(
+                      expandedModel!.id,
+                    );
 
-                      return (
-                        <div
-                          key={f.rfilename}
-                          className="flex items-center gap-3 px-3 py-1.5 hover:bg-slate-grey-900 border-l-2 border-transparent hover:border-indigo-smoke-700 transition-colors group"
-                        >
-                          <span className="font-mono text-xs text-parchment-300 truncate flex-1 min-w-0">
-                            {f.rfilename}
+                    return (
+                      <div
+                        key={f.rfilename}
+                        className="flex items-center gap-3 px-3 py-1.5 hover:bg-slate-grey-900 border-l-2 border-transparent hover:border-indigo-smoke-700 transition-colors group"
+                      >
+                        <span className="font-mono text-xs text-parchment-300 truncate flex-1 min-w-0">
+                          {f.rfilename}
+                        </span>
+                        {f.size != null && (
+                          <span className="font-mono text-[10px] text-slate-grey-600 flex-shrink-0 tabular-nums">
+                            {formatBytes(f.size)}
                           </span>
-                          {f.size != null && (
-                            <span className="font-mono text-[10px] text-slate-grey-600 flex-shrink-0 tabular-nums">
-                              {formatBytes(f.size)}
-                            </span>
+                        )}
+                        <button
+                          onClick={() =>
+                            handleDownload(expandedModel!.id, f.rfilename)
+                          }
+                          disabled={isDownloading}
+                          className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono transition-all border ${
+                            isDone
+                              ? "border-moss-green-800 text-moss-green-600 bg-moss-green-950/40 cursor-default"
+                              : isDownloading
+                                ? "border-indigo-smoke-800 text-indigo-smoke-500 bg-indigo-smoke-950/40 cursor-wait"
+                                : "border-slate-grey-700 text-slate-grey-400 hover:border-indigo-smoke-600 hover:text-indigo-smoke-400 hover:bg-indigo-smoke-950/20"
+                          }`}
+                        >
+                          {isDone ? (
+                            <>
+                              <CheckCircle2 size={9} /> done
+                            </>
+                          ) : isDownloading ? (
+                            <>
+                              <Loader2 size={9} className="animate-spin" /> …
+                            </>
+                          ) : (
+                            <>
+                              <Download size={9} /> get
+                            </>
                           )}
-                          <button
-                            onClick={() =>
-                              handleDownload(expandedModel!.id, f.rfilename)
-                            }
-                            disabled={isDownloading}
-                            className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono transition-all border ${
-                              isDone
-                                ? "border-moss-green-800 text-moss-green-600 bg-moss-green-950/40 cursor-default"
-                                : isDownloading
-                                  ? "border-indigo-smoke-800 text-indigo-smoke-500 bg-indigo-smoke-950/40 cursor-wait"
-                                  : "border-slate-grey-700 text-slate-grey-400 hover:border-indigo-smoke-600 hover:text-indigo-smoke-400 hover:bg-indigo-smoke-950/20"
-                            }`}
-                          >
-                            {isDone ? (
-                              <>
-                                <CheckCircle2 size={9} /> done
-                              </>
-                            ) : isDownloading ? (
-                              <>
-                                <Loader2 size={9} className="animate-spin" /> …
-                              </>
-                            ) : (
-                              <>
-                                <Download size={9} /> get
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      );
-                    })}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
