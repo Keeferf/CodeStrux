@@ -1,5 +1,5 @@
 import { WindowControls } from "./WindowControls";
-import { ModelSearch } from "../../../ModelSearch";
+import { ModelSearch } from "../header/model-search/ModelSearch";
 
 interface HeaderProps {
   model: string;
