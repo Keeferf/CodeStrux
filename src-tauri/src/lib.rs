@@ -5,11 +5,11 @@
 
 mod download;
 mod hardware;
-mod local_chat;
+mod chat;
 mod model_storage;
 
 use download::DownloadState;
-use local_chat::LocalChatState;
+use chat::LocalChatState;
 
 /// Builds and runs the Tauri application.
 ///
@@ -33,11 +33,11 @@ pub fn run() {
             download::commands::start_download,
             download::commands::cancel_download,
             // local model management + inference
-            local_chat::get_loaded_model,
-            local_chat::load_local_model,
-            local_chat::unload_local_model,
-            local_chat::start_local_chat,
-            local_chat::stop_local_chat,
+            chat::commands::get_loaded_model,
+            chat::commands::load_local_model,
+            chat::commands::unload_local_model,
+            chat::commands::start_local_chat,
+            chat::commands::stop_local_chat,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
