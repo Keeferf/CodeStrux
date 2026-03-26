@@ -20,7 +20,7 @@ tauri-plugin-store  = "2.4.2"
 serde      = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sysinfo    = "0.38.4"
-wgpu       = { version = "29.0.0", features = [] }
+wgpu       = { version = "29.0.1", features = [] }
 
 # Parallel chunked model file downloads from HuggingFace Hub.
 # http2 is intentionally absent — the download client forces HTTP/1.1
