@@ -24,7 +24,6 @@ interface LoadedModelInfo {
   backend: string;
 }
 
-// Shapes returned by chat_storage commands
 interface StoredConversation {
   id: string;
   model_id: string;
@@ -45,7 +44,7 @@ interface StoredMessage {
 
 function convToSession(c: StoredConversation): Session {
   return {
-    id: c.id as unknown as number, // Session.id is number in types.ts — see note below
+    id: c.id as unknown as number,
     title: c.title,
     model: c.model_id || "local",
     time: new Date(c.created_at * 1000).toLocaleDateString(),
@@ -53,11 +52,7 @@ function convToSession(c: StoredConversation): Session {
 }
 
 export default function App() {
-  // conv IDs from the DB are strings; we keep them in a parallel map so
-  // the existing Session type (which uses number ids) is unchanged.
   const sessionDbId = useRef<Map<number, string>>(new Map());
-  // Incremented only to give React a stable numeric key for new sessions
-  // while we wait for the DB round-trip to return the real string id.
   const tempIdCounter = useRef(0);
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -70,10 +65,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Loaded local model ────────────────────────────────────────────────────
   const [loadedModel, setLoadedModel] = useState<LoadedModelInfo | null>(null);
-
-  // ── Download state ────────────────────────────────────────────────────────
   const [downloadedModels, setDownloadedModels] = useState<DownloadedModel[]>(
     [],
   );
@@ -81,15 +73,13 @@ export default function App() {
     null,
   );
 
-  // Tracks the DB conversation id for the currently active session.
   const activeConvId = useRef<string | null>(null);
-  // Accumulates streamed assistant tokens so we can persist in one write.
   const streamedReply = useRef("");
 
   const chatUnlistensRef = useRef<UnlistenFn[]>([]);
   const dlUnlistenRef = useRef<UnlistenFn[]>([]);
 
-  // ── Init: load persisted conversations ───────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (isReady) return;
@@ -104,8 +94,6 @@ export default function App() {
     invoke<StoredConversation[]>("list_conversations")
       .then((convs) => {
         if (convs.length === 0) {
-          // No history yet — start with one empty in-memory session.
-          // It will be persisted on first send.
           const tempId = --tempIdCounter.current;
           setSessions([
             { id: tempId, title: "New session", model: "local", time: "now" },
@@ -113,14 +101,12 @@ export default function App() {
           setActiveSessionId(tempId);
         } else {
           const mapped = convs.map(convToSession);
-          // Populate the id map
           convs.forEach((c) =>
             sessionDbId.current.set(c.id as unknown as number, c.id),
           );
           setSessions(mapped);
           setActiveSessionId(mapped[0].id);
           activeConvId.current = convs[0].id;
-          // Load messages for the most recent conversation
           loadMessagesForConv(convs[0].id);
         }
       })
@@ -153,7 +139,7 @@ export default function App() {
     }
   };
 
-  // ── Track loaded model via events ─────────────────────────────────────────
+  // ── Model events ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     const unlistens: Promise<UnlistenFn>[] = [
@@ -166,7 +152,7 @@ export default function App() {
     };
   }, []);
 
-  // ── Download event listeners ──────────────────────────────────────────────
+  // ── Download events ───────────────────────────────────────────────────────
 
   useEffect(() => {
     const setup = async () => {
@@ -219,7 +205,6 @@ export default function App() {
 
   const handleNewSession = () => {
     resetSession();
-    // Use a negative temp id — replaced by the DB id on first send.
     const tempId = --tempIdCounter.current;
     const s: Session = {
       id: tempId,
@@ -239,11 +224,9 @@ export default function App() {
       activeConvId.current = dbId;
       await loadMessagesForConv(dbId);
     }
-    // If no dbId the session was never persisted (no messages sent yet) — messages stay empty.
   };
 
   const handleDeleteSession = (id: number) => {
-    // Delete from DB if it was ever persisted
     const dbId = sessionDbId.current.get(id);
     if (dbId) {
       invoke("delete_conversation", { conversationId: dbId }).catch(() => {});
@@ -294,7 +277,8 @@ export default function App() {
     const userText = input.trim();
     setInput("");
 
-    // ── 1. Ensure a DB conversation exists for this session ────────────────
+    // ── 1. Ensure a DB conversation exists ────────────────────────────────
+    const isFirstMessage = !activeConvId.current;
     let convId = activeConvId.current;
     if (!convId) {
       try {
@@ -307,36 +291,36 @@ export default function App() {
         });
         convId = conv.id;
         activeConvId.current = convId;
-
-        // Wire the real DB id to the current numeric session id
         if (activeSessionId !== null) {
           sessionDbId.current.set(activeSessionId, convId);
         }
-      } catch (e) {
+      } catch {
         setError("Could not create conversation record.");
         return;
       }
     }
 
-    // ── 2. Persist user message ────────────────────────────────────────────
+    // ── 2. Persist user message ───────────────────────────────────────────
     try {
-      const saved = await invoke<StoredMessage>("append_message", {
+      const savedUser = await invoke<StoredMessage>("append_message", {
         conversationId: convId,
         role: "user",
         content: userText,
       });
 
-      // Update sidebar title if it just changed (auto-title on first message)
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === activeSessionId && s.title === "New session"
-            ? { ...s, title: userText.slice(0, 60) }
-            : s,
-        ),
-      );
+      // Title: first 60 chars of the first user message, applied immediately.
+      if (isFirstMessage) {
+        const title = userText.slice(0, 60);
+        invoke("rename_conversation", { conversationId: convId, title }).catch(
+          () => {},
+        );
+        setSessions((prev) =>
+          prev.map((s) => (s.id === activeSessionId ? { ...s, title } : s)),
+        );
+      }
 
       const userMsg: ChatMessage = {
-        id: saved.id,
+        id: savedUser.id,
         role: "user",
         content: userText,
       };
@@ -358,11 +342,11 @@ export default function App() {
           content: m.content,
         }));
 
-      // ── 3. Set up SSE listeners ──────────────────────────────────────────
+      // ── 3. SSE listeners ─────────────────────────────────────────────────
       chatUnlistensRef.current.forEach((fn) => fn());
       chatUnlistensRef.current = [];
 
-      const currentConvId = convId; // capture for closure
+      const currentConvId = convId;
 
       const unlistens = await Promise.all([
         listen<string>("local-chat-token", (e) => {
@@ -381,24 +365,29 @@ export default function App() {
           chatUnlistensRef.current.forEach((fn) => fn());
           chatUnlistensRef.current = [];
 
-          // ── 4. Persist assistant reply ───────────────────────────────────
+          // ── 4. Persist assistant reply ────────────────────────────────────
           if (streamedReply.current.trim()) {
             try {
-              const saved = await invoke<StoredMessage>("append_message", {
-                conversationId: currentConvId,
-                role: "assistant",
-                content: streamedReply.current,
-              });
-              // Replace placeholder id with the real DB id
+              const savedAssistant = await invoke<StoredMessage>(
+                "append_message",
+                {
+                  conversationId: currentConvId,
+                  role: "assistant",
+                  content: streamedReply.current,
+                },
+              );
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantPlaceholderId ? { ...m, id: saved.id } : m,
+                  m.id === assistantPlaceholderId
+                    ? { ...m, id: savedAssistant.id }
+                    : m,
                 ),
               );
             } catch {
-              // Non-fatal — message is already visible in the UI
+              // Non-fatal
             }
           }
+
           streamedReply.current = "";
         }),
 

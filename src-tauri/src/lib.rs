@@ -39,7 +39,7 @@ pub fn run() {
             chat::commands::unload_local_model,
             chat::commands::start_local_chat,
             chat::commands::stop_local_chat,
-            // chat management
+            // chat persistence
             chat_storage::create_conversation,
             chat_storage::list_conversations,
             chat_storage::get_conversation_messages,

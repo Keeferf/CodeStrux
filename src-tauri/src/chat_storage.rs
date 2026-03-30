@@ -282,20 +282,6 @@ pub fn append_message(
     )
     .map_err(|e| format!("Could not bump updated_at: {e}"))?;
 
-    // Auto-title: use the first user message (trimmed to 80 chars).
-    if role == "user" {
-        conn.execute(
-            "UPDATE conversations
-             SET title = CASE
-                 WHEN title = 'New chat' THEN substr(?1, 1, 80)
-                 ELSE title
-             END
-             WHERE id = ?2",
-            params![content.trim(), conversation_id],
-        )
-        .map_err(|e| format!("Could not set auto-title: {e}"))?;
-    }
-
     Ok(StoredMessage {
         id: row_id,
         conversation_id,
