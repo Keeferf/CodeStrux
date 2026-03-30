@@ -7,6 +7,7 @@ mod download;
 mod hardware;
 mod chat;
 mod model_storage;
+pub mod chat_storage;
 
 use download::DownloadState;
 use chat::LocalChatState;
@@ -38,6 +39,13 @@ pub fn run() {
             chat::commands::unload_local_model,
             chat::commands::start_local_chat,
             chat::commands::stop_local_chat,
+            // chat persistence
+            chat_storage::create_conversation,
+            chat_storage::list_conversations,
+            chat_storage::get_conversation_messages,
+            chat_storage::append_message,
+            chat_storage::rename_conversation,
+            chat_storage::delete_conversation,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

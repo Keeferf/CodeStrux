@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background gradient: dark navy, top-left lighter → bottom-right darker -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1c2130"/>
+      <stop offset="100%" stop-color="#161a24"/>
+    </linearGradient>
+
+    <!-- Top circle gradient: lighter periwinkle top-left → deeper blue bottom-right -->
+    <radialGradient id="circleTop" cx="35%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#b4c5ef"/>
+      <stop offset="100%" stop-color="#8096c8"/>
+    </radialGradient>
+
+    <!-- Bottom-left circle gradient -->
+    <radialGradient id="circleBL" cx="35%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#8fa8d4"/>
+      <stop offset="100%" stop-color="#6278aa"/>
+    </radialGradient>
+
+    <!-- Bottom-right circle gradient -->
+    <radialGradient id="circleBR" cx="35%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#96aed8"/>
+      <stop offset="100%" stop-color="#697fb0"/>
+    </radialGradient>
+
+    <!-- Clip to rounded square (corner radius ~15.6% = 160px on 1024) -->
+    <clipPath id="roundedSquare">
+      <rect x="0" y="0" width="1024" height="1024" rx="160" ry="160"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="160" ry="160" fill="url(#bgGrad)"/>
+
+  <!-- Three circles, clipped to rounded square -->
+  <g clip-path="url(#roundedSquare)">
+    <!-- Top circle: center (510, 313), r=91 -->
+    <circle cx="510" cy="313" r="91" fill="url(#circleTop)"/>
+
+    <!-- Bottom-left circle: center (293, 677), r=91 -->
+    <circle cx="293" cy="677" r="91" fill="url(#circleBL)"/>
+
+    <!-- Bottom-right circle: center (725, 677), r=91 -->
+    <circle cx="725" cy="677" r="91" fill="url(#circleBR)"/>
+  </g>
+</svg>
