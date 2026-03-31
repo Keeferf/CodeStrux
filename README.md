@@ -42,7 +42,6 @@ CodeStrux is a native desktop AI chat application built with Tauri and React. It
 - **100% local inference** — models run via a bundled `llama-server` subprocess; nothing is sent to a cloud API
 - **Model downloader** — fetch GGUF models from HuggingFace with a real-time progress bar and cancel support
 - **Multiple sessions** — create, switch between, and delete chat sessions from the collapsible sidebar
-- **Creativity modes** — choose between Precise, Balanced, and Creative temperature presets
 - **Hardware detection** — reports your GPU/CPU info to help with model selection
 - **Settings panel** — manage downloaded models, load/unload the active model, and tune inference settings
 - **Streaming responses** — tokens stream into the chat window in real time via Tauri events
@@ -56,22 +55,12 @@ CodeStrux is a native desktop AI chat application built with Tauri and React. It
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
 | Desktop shell | [Tauri 2](https://tauri.app)                                                                                |
 | Frontend      | [React 19](https://react.dev) + [Vite](https://vitejs.dev)                                                  |
-| Language      | [TypeScript](https://www.typescriptlang.org/) (strict)                                                      |
+| Language      | [TypeScript](https://www.typescriptlang.org/)                                                               |
 | Styling       | [Tailwind CSS v4](https://tailwindcss.com)                                                                  |
 | Persistence   | [`tauri-plugin-store`](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/store) (JSON, local) |
 | Inference     | [`llama-server`](https://github.com/ggml-org/llama.cpp) (bundled binary)                                    |
 | HTTP client   | [reqwest](https://github.com/seanmonstar/reqwest) (rustls, HTTP/1.1 chunked downloads)                      |
 | Icons         | [React-Icons](https://react-icons.github.io/react-icons/)                                                   |
-
----
-
-## Prerequisites
-
-Before you begin, make sure you have the following installed:
-
-- [Node.js](https://nodejs.org) 18+
-- [Rust](https://rustup.rs) stable toolchain (`rustup update stable`)
-- Platform-specific Tauri dependencies — follow the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/) for your OS
 
 ---
 
@@ -153,17 +142,5 @@ Streaming responses and download progress are pushed from Rust to the frontend v
 | `download-done`      | —                  | Download completed successfully       |
 | `download-cancelled` | —                  | Download was cancelled                |
 | `download-error`     | `string`           | Download error message                |
-
----
-
-## Creativity Modes
-
-Creativity is controlled by adjusting the temperature passed to `llama-server`:
-
-| Mode     | Temperature | Description                      |
-| -------- | ----------- | -------------------------------- |
-| Precise  | `0.2`       | Deterministic, factual responses |
-| Balanced | `0.7`       | Default general-purpose setting  |
-| Creative | `1.2`       | Expressive, varied responses     |
 
 ---
