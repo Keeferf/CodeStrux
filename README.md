@@ -61,7 +61,7 @@ CodeStrux is a native desktop AI chat application built with Tauri and React. It
 | Persistence   | [`tauri-plugin-store`](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/store) (JSON, local) |
 | Inference     | [`llama-server`](https://github.com/ggml-org/llama.cpp) (bundled binary)                                    |
 | HTTP client   | [reqwest](https://github.com/seanmonstar/reqwest) (rustls, HTTP/1.1 chunked downloads)                      |
-| Icons         | [Lucide React](https://lucide.dev)                                                                          |
+| Icons         | [React-Icons](https://react-icons.github.io/react-icons/)                                                   |
 
 ---
 
