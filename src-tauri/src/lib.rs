@@ -9,6 +9,7 @@ mod chat;
 mod model_storage;
 pub mod chat_storage;
 
+use tauri::Manager;
 use download::DownloadState;
 use chat::LocalChatState;
 
@@ -22,6 +23,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_shell::init())
         .manage(DownloadState::default())
         .manage(LocalChatState::default())
         .invoke_handler(tauri::generate_handler![
@@ -47,6 +49,19 @@ pub fn run() {
             chat_storage::rename_conversation,
             chat_storage::delete_conversation,
         ])
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                let app = window.app_handle();
+                // Only kill the server when the last window is gone
+                if app.webview_windows().is_empty() {
+                    if let Some(state) = app.try_state::<LocalChatState>() {
+                        if let Some(child) = state.server.lock().unwrap().take() as Option<tauri_plugin_shell::process::CommandChild> {
+                            let _ = child.kill();
+                        }
+                    }
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

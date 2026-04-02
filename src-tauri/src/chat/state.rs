@@ -1,27 +1,24 @@
 //! Runtime state managed by Tauri for the local chat subsystem.
 
-use std::{
-    path::PathBuf,
-    sync::{
-        atomic::AtomicBool,
-        Arc, Mutex,
-    },
+use std::sync::{
+    atomic::AtomicBool,
+    Arc, Mutex,
 };
 
-use tokio::process::Child;
+use tauri_plugin_shell::process::CommandChild;          // ← replaces tokio::process::Child
 
 use super::types::LoadedModelInfo;
 
 pub struct LocalChatState {
     /// The live llama-server child process, if any.
-    pub server: Mutex<Option<Child>>,
+    pub server: Mutex<Option<CommandChild>>,            // ← was Option<Child>
 
     /// Registry entry for the currently-loaded model.
     pub loaded: Mutex<Option<LoadedModelInfo>>,
 
-    /// The binary that succeeded on the last `load_local_model` call,
+    /// The sidecar name that succeeded on the last `load_local_model` call,
     /// cached so we skip the Vulkan probe on subsequent loads.
-    pub active_bin: Mutex<Option<PathBuf>>,
+    pub active_bin: Mutex<Option<String>>,              // ← was Option<PathBuf>
 
     /// Checked at the top of every SSE chunk loop iteration.
     pub cancel: Arc<AtomicBool>,
@@ -49,6 +46,16 @@ impl Default for LocalChatState {
                 })
                 .build()
                 .expect("Failed to build local-chat HTTP client"),
+        }
+    }
+}
+
+impl Drop for LocalChatState {
+    fn drop(&mut self) {
+        if let Ok(mut guard) = self.server.lock() {
+            if let Some(child) = guard.take() {
+                let _ = child.kill();
+            }
         }
     }
 }

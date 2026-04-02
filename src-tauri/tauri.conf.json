@@ -26,6 +26,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": ["bin/llama-server-vulkan", "bin/llama-server-cpu"],
     "icon": [
       "icons/icon.ico",
       "icons/icon.icns",
@@ -36,7 +37,6 @@
       "icons/icon.png"
     ],
     "resources": {
-      "bin/*.exe": "./",
       "bin/*.dll": "./"
     },
     "windows": {

@@ -14,12 +14,14 @@ use std::sync::{atomic::Ordering, Arc};
 
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_shell::process::CommandChild;          // ← new
 
 use crate::model_storage::get_downloaded_models_internal;
 
 use super::{
     logging::write_log,
-    server::{kill_server, resolve_candidates, spawn_server, wait_for_health, BIN_CPU, BIN_VULKAN, SERVER_PORT},
+    server::{kill_server, resolve_candidates, spawn_server, wait_for_health, SERVER_PORT},
+    // ↑ removed BIN_CPU, BIN_VULKAN (no longer needed here)
     state::LocalChatState,
     types::{LoadedModelInfo, Message},
 };
@@ -33,7 +35,7 @@ pub fn get_loaded_model(state: State<'_, LocalChatState>) -> Option<LoadedModelI
 /// Loads a downloaded GGUF model by starting (or restarting) llama-server.
 ///
 /// Tries the Vulkan binary first. If its health check times out the process
-/// is killed and the CPU binary is tried. On success the winning binary path
+/// is killed and the CPU binary is tried. On success the winning backend name
 /// is cached so future calls on the same machine go straight to the known-good
 /// binary.
 ///
@@ -68,20 +70,13 @@ pub async fn load_local_model(
     }));
 
     // ── 2. Kill any currently-running server ──────────────────────────────────
-    // Take the child out of the mutex *before* awaiting so the MutexGuard is
-    // dropped immediately. Holding it across `.await` makes the future non-Send.
     let old_child = state.server.lock().unwrap().take();
-    if let Some(mut child) = old_child {
-        kill_server(&mut child).await;
+    if let Some(child) = old_child {
+        kill_server(child)?;                            // ← now sync, owned, returns Result
     }
     *state.loaded.lock().unwrap() = None;
 
-    // ── 3. Resolve candidates ─────────────────────────────────────────────────
-    let resource_dir = app
-        .path()
-        .resource_dir()
-        .map_err(|e| format!("Could not resolve resource directory: {}", e))?;
-
+    // ── 3. Set up log path ────────────────────────────────────────────────────
     let log_path = app
         .path()
         .app_data_dir()
@@ -89,30 +84,18 @@ pub async fn load_local_model(
         .unwrap_or_else(|_| std::path::PathBuf::from("llama-server.log"));
 
     write_log(&log_path, &format!(
-        "load_local_model called — resource_dir={} model_path={}",
-        resource_dir.display(), &model_path
+        "load_local_model called — model_path={}", &model_path
     ));
 
-    let mut candidates = resolve_candidates(&resource_dir);
+    // ── 4. Resolve candidates ─────────────────────────────────────────────────
+    // resolve_candidates() no longer needs resource_dir — Tauri handles paths.
+    let mut candidates = resolve_candidates();          // ← no args
 
-    if candidates.is_empty() {
-        let e = format!(
-            "No llama-server binary found in '{}'. \
-             Expected '{}' and/or '{}'. \
-             See setup instructions in the README.",
-            resource_dir.display(), BIN_VULKAN, BIN_CPU
-        );
-        let _ = app.emit("model-error", &e);
-        return Err(e);
-    }
-
-    // ── 4. Move the cached binary to the front ────────────────────────────────
-    //
-    // If we already know which binary works on this machine, try it first to
-    // avoid re-probing Vulkan every time the user switches models.
+    // ── 5. Move the cached backend to the front ───────────────────────────────
+    // If we already know which backend works on this machine, try it first.
     let cached = state.active_bin.lock().unwrap().clone();
-    if let Some(ref cached_path) = cached {
-        if let Some(pos) = candidates.iter().position(|c| &c.path == cached_path) {
+    if let Some(ref cached_name) = cached {
+        if let Some(pos) = candidates.iter().position(|c| c.name == cached_name) {
             if pos != 0 {
                 let preferred = candidates.remove(pos);
                 candidates.insert(0, preferred);
@@ -120,7 +103,7 @@ pub async fn load_local_model(
         }
     }
 
-    // ── 5. Try each candidate in order ────────────────────────────────────────
+    // ── 6. Try each candidate in order ────────────────────────────────────────
     let mut last_error = String::new();
 
     for candidate in candidates {
@@ -128,7 +111,7 @@ pub async fn load_local_model(
             "backend": candidate.backend,
         }));
 
-        let mut child = match spawn_server(&candidate.path, &model_path) {
+        let child: CommandChild = match spawn_server(&app, &candidate, &model_path, &log_path).await {
             Ok(c) => c,
             Err(e) => {
                 last_error = e.clone();
@@ -141,7 +124,8 @@ pub async fn load_local_model(
             }
         };
 
-        match wait_for_health(&state.client, &mut child, candidate.timeout, &log_path, candidate.backend).await {
+        // wait_for_health no longer takes &mut child
+        match wait_for_health(&state.client, candidate.timeout, &log_path, candidate.backend).await {
             Ok(()) => {
                 let info = LoadedModelInfo {
                     model_id: model_id.clone(),
@@ -150,7 +134,7 @@ pub async fn load_local_model(
                 };
                 *state.server.lock().unwrap()     = Some(child);
                 *state.loaded.lock().unwrap()     = Some(info.clone());
-                *state.active_bin.lock().unwrap() = Some(candidate.path);
+                *state.active_bin.lock().unwrap() = Some(candidate.name.to_string()); // ← was PathBuf, now String
                 let _ = app.emit("model-loaded", &info);
                 return Ok(());
             }
@@ -161,11 +145,10 @@ pub async fn load_local_model(
                     "reason":  &last_error,
                 }));
 
-                kill_server(&mut child).await;
+                kill_server(child)?;                    // ← sync, owned
 
-                // If the cached binary just failed (e.g. driver was uninstalled
-                // since last run), clear the cache so next time we probe again.
-                if cached.as_deref() == Some(candidate.path.as_path()) {
+                // Clear the cache if the cached backend just failed
+                if cached.as_deref() == Some(candidate.name) {
                     *state.active_bin.lock().unwrap() = None;
                 }
             }
@@ -183,30 +166,19 @@ pub async fn load_local_model(
 
 /// Kills llama-server and clears loaded-model state.
 ///
-/// `active_bin` is intentionally preserved — we still know which binary works
+/// `active_bin` is intentionally preserved — we still know which backend works
 /// on this machine even after unloading.
 #[tauri::command]
 pub async fn unload_local_model(state: State<'_, LocalChatState>) -> Result<(), String> {
     let old_child = state.server.lock().unwrap().take();
-    if let Some(mut child) = old_child {
-        kill_server(&mut child).await;
+    if let Some(child) = old_child {
+        kill_server(child)?;                            // ← sync, owned
     }
     *state.loaded.lock().unwrap() = None;
     Ok(())
 }
 
-/// Streams a chat completion from the loaded local model.
-///
-/// Hits `POST /v1/chat/completions` on llama-server's OpenAI-compatible
-/// endpoint and forwards SSE tokens to the frontend.
-///
-/// Emits:
-///
-/// | Event               | Payload  |
-/// |---------------------|----------|
-/// | `local-chat-token`  | `String` |
-/// | `local-chat-done`   | `()`     |
-/// | `local-chat-error`  | `String` |
+// start_local_chat and stop_local_chat are unchanged
 #[tauri::command]
 pub async fn start_local_chat(
     app: AppHandle,
@@ -290,7 +262,6 @@ pub async fn start_local_chat(
     Ok(())
 }
 
-/// Signals the running stream to stop after the current chunk.
 #[tauri::command]
 pub fn stop_local_chat(state: State<'_, LocalChatState>) {
     state.cancel.store(true, Ordering::SeqCst);

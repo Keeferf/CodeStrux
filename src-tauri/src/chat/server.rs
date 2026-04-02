@@ -1,9 +1,10 @@
 //! llama-server process management: binary resolution, spawning, health
 //! checking, and shutdown.
 
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
 
-use tokio::process::Child;
+use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 
 use super::logging::write_log;
 
@@ -22,108 +23,92 @@ pub const CPU_HEALTH_TIMEOUT: Duration = Duration::from_secs(120);
 pub const HEALTH_POLL: Duration = Duration::from_millis(250);
 pub const CTX_SIZE: u32 = 8192;
 
-pub const BIN_VULKAN: &str = "llama-server-vulkan.exe";
-pub const BIN_CPU: &str    = "llama-server-cpu.exe";
+// Sidecar names — no .exe, no target triple (Tauri appends both automatically)
+pub const BIN_VULKAN: &str = "llama-server-vulkan";
+pub const BIN_CPU: &str    = "llama-server-cpu";
 
 // ── Candidate ─────────────────────────────────────────────────────────────────
 
 /// A candidate binary with its backend label and health-check timeout.
+/// 
+/// `name` is the sidecar name passed to Tauri (no extension, no triple).
 pub struct Candidate {
-    pub path:    PathBuf,
+    pub name:    &'static str,   // ← was `path: PathBuf`, Tauri resolves path now
     pub backend: &'static str,
     pub timeout: Duration,
 }
 
-/// Returns the available binaries from `resource_dir` in preference order
-/// (Vulkan first, CPU second), skipping any that are not present on disk.
-pub fn resolve_candidates(resource_dir: &std::path::Path) -> Vec<Candidate> {
-    [
-        (BIN_VULKAN, "vulkan", VULKAN_HEALTH_TIMEOUT),
-        (BIN_CPU,    "cpu",    CPU_HEALTH_TIMEOUT),
+/// Returns candidates in preference order (Vulkan first, CPU second).
+/// 
+/// Unlike before, we don't check disk — Tauri will error at spawn time if
+/// a sidecar isn't bundled, which is the right place to surface that.
+pub fn resolve_candidates() -> Vec<Candidate> {   // ← no longer needs resource_dir
+    vec![
+        Candidate { name: BIN_VULKAN, backend: "vulkan", timeout: VULKAN_HEALTH_TIMEOUT },
+        Candidate { name: BIN_CPU,    backend: "cpu",    timeout: CPU_HEALTH_TIMEOUT },
     ]
-    .into_iter()
-    .filter_map(|(name, backend, timeout)| {
-        let path = resource_dir.join(name);
-        path.exists().then_some(Candidate { path, backend, timeout })
-    })
-    .collect()
-}
-
-// ── Path helpers ──────────────────────────────────────────────────────────────
-
-/// Strips the `\\?\` extended-length prefix Windows adds to long paths.
-///
-/// Plain Win32 paths are required for `SetCurrentDirectory` and for
-/// `CreateProcess` to resolve the executable's directory (DLL search rule 1).
-pub fn strip_verbatim(path: &std::path::Path) -> std::path::PathBuf {
-    let s = path.to_string_lossy();
-    if let Some(rest) = s.strip_prefix(r"\\?\") {
-        return std::path::PathBuf::from(rest.to_string());
-    }
-    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
-        return std::path::PathBuf::from(format!(r"\\{}", rest));
-    }
-    path.to_path_buf()
 }
 
 // ── Spawn / kill ──────────────────────────────────────────────────────────────
 
-/// Spawns llama-server at `bin` pointing at `model_path`.
+/// Spawns a llama-server sidecar pointing at `model_path`.
 ///
-/// `CREATE_NO_WINDOW` suppresses the console window on Windows.
-/// stderr is captured so that if the process crashes before `/health` responds
-/// we can include the actual error output in the failure message.
-/// `--log-disable` is intentionally omitted so crash output is not suppressed.
-pub fn spawn_server(bin: &PathBuf, model_path: &str) -> Result<Child, String> {
-    let clean_bin = strip_verbatim(bin);
-    let clean_dir = clean_bin
-        .parent()
-        .unwrap_or(clean_bin.as_path())
-        .to_path_buf();
-
-    // Prepend the binary's directory to PATH so Windows finds sibling DLLs.
-    // Use the string form of clean_dir to guarantee no \\?\ prefix survives
-    // into the child process environment.
-    let clean_dir_str = clean_dir.to_string_lossy().to_string();
-    let path_env = std::env::var("PATH").unwrap_or_default();
-    let new_path = format!("{};{}", clean_dir_str, path_env);
-
-    tokio::process::Command::new(&clean_bin)
+/// Tauri handles:
+/// - Path resolution and DLL discovery
+/// - CREATE_NO_WINDOW on Windows
+/// - Kill-on-app-exit
+pub async fn spawn_server(
+    app_handle: &tauri::AppHandle,
+    candidate: &Candidate,
+    model_path: &str,
+    log_path: &std::path::Path,
+) -> Result<CommandChild, String> {
+    let (mut rx, child) = app_handle
+        .shell()
+        .sidecar(candidate.name)
+        .map_err(|e| format!("Failed to find sidecar '{}': {}", candidate.name, e))?
         .args([
             "--model",    model_path,
             "--port",     &SERVER_PORT.to_string(),
             "--host",     "127.0.0.1",
             "--ctx-size", &CTX_SIZE.to_string(),
         ])
-        .current_dir(&clean_dir)
-        .env("PATH", &new_path)
-        .kill_on_drop(true)
-        .stderr(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::null())
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .spawn()
-        .map_err(|e| format!("Failed to spawn '{}': {}", clean_bin.display(), e))
+        .map_err(|e| format!("Failed to spawn '{}': {}", candidate.name, e))?;
+
+    // Stream stderr to log file in the background
+    let backend   = candidate.backend.to_string();
+    let log_path  = log_path.to_path_buf();
+    tauri::async_runtime::spawn(async move {
+        while let Some(event) = rx.recv().await {
+            if let CommandEvent::Stderr(line) = event {
+                let line = String::from_utf8_lossy(&line);
+                write_log(&log_path, &format!("[{}] {}", backend, line));
+            }
+        }
+    });
+
+    Ok(child)
 }
 
-/// Kills `child` and reaps its exit status.
-pub async fn kill_server(child: &mut Child) {
-    let _ = child.kill().await;
-    let _ = child.wait().await;
+/// Kills the server. Tauri also does this automatically on app exit.
+pub fn kill_server(child: CommandChild) -> Result<(), String> {
+    child.kill().map_err(|e| format!("Failed to kill server: {}", e))
 }
 
 // ── Health check ──────────────────────────────────────────────────────────────
 
-/// Polls `GET /health` until 200, the process exits, or `timeout` elapses.
+/// Polls `GET /health` until 200 or `timeout` elapses.
 ///
-/// Crash output is written to `log_path` so it can be inspected without
-/// surfacing anything in the UI.
+/// Note: unlike before, we can no longer fast-fail on process exit by calling
+/// `try_wait()` — Tauri's CommandChild doesn't expose that. The timeout
+/// handles the crash case instead; stderr is streamed to the log above.
 pub async fn wait_for_health(
     client: &reqwest::Client,
-    child: &mut Child,
     timeout: Duration,
     log_path: &std::path::Path,
     backend: &str,
-) -> Result<(), String> {
+) -> Result<(), String> {   // ← child param removed, no longer needed
     let url      = format!("http://127.0.0.1:{}/health", SERVER_PORT);
     let deadline = tokio::time::Instant::now() + timeout;
 
@@ -132,31 +117,6 @@ pub async fn wait_for_health(
             let msg = format!("llama-server did not become ready within {} s.", timeout.as_secs());
             write_log(log_path, &format!("[{}] {}", backend, msg));
             return Err(msg);
-        }
-
-        // Fast-fail: if the process already exited, read stderr and surface it.
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                let stderr_text = if let Some(stderr) = child.stderr.take() {
-                    use tokio::io::AsyncReadExt;
-                    let mut buf = String::new();
-                    let mut reader = tokio::io::BufReader::new(stderr);
-                    let _ = reader.read_to_string(&mut buf).await;
-                    buf.trim().to_string()
-                } else {
-                    String::new()
-                };
-
-                let reason = if stderr_text.is_empty() {
-                    format!("exited with status {}", status)
-                } else {
-                    format!("exited with status {}: {}", status, stderr_text)
-                };
-                write_log(log_path, &format!("[{}] {}", backend, reason));
-                return Err(reason);
-            }
-            Ok(None) => {} // still running — continue polling
-            Err(e)   => return Err(format!("Failed to poll process: {}", e)),
         }
 
         match client.get(&url).send().await {
