@@ -166,11 +166,7 @@ export function Sidebar({
 
         <button
           onClick={onToggleSettings}
-          className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${
-            showSettings
-              ? "bg-indigo-smoke-900/50 text-indigo-smoke-400"
-              : "text-slate-grey-500 hover:text-parchment-300 hover:bg-slate-grey-800"
-          }`}
+          className="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer transition-all duration-150 text-slate-grey-500 hover:text-parchment-300 hover:bg-slate-grey-800"
           aria-label="Settings"
           title="Settings"
         >
