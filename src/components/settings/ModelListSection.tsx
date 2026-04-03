@@ -21,7 +21,7 @@ export function ModelListSection({
   onLoad,
   onDelete,
 }: ModelListSectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div>
