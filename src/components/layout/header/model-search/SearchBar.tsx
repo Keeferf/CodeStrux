@@ -1,4 +1,10 @@
-import { Search, Loader2, X, ChevronLeft, Download } from "lucide-react";
+import {
+  LuSearch,
+  LuLoaderCircle,
+  LuX,
+  LuChevronLeft,
+  LuDownload,
+} from "react-icons/lu";
 import type { RefObject } from "react";
 import type { HFModel } from "./useModelSearch";
 
@@ -36,7 +42,7 @@ export function SearchBar({
         onClick={onOpen}
         className="w-full flex items-center gap-2 h-6 bg-slate-grey-950 border border-slate-grey-800 rounded-md px-3 hover:border-slate-grey-600 hover:bg-slate-grey-900 transition-all duration-150 group"
       >
-        <Download
+        <LuDownload
           size={11}
           className="text-slate-grey-600 group-hover:text-indigo-smoke-400 transition-colors shrink-0"
         />
@@ -56,15 +62,15 @@ export function SearchBar({
           className="text-indigo-smoke-400 hover:text-parchment-300 transition-colors shrink-0"
           title="Back to search"
         >
-          <ChevronLeft size={12} />
+          <LuChevronLeft size={12} />
         </button>
       ) : isSearching ? (
-        <Loader2
+        <LuLoaderCircle
           size={12}
           className="text-indigo-smoke-400 animate-spin shrink-0"
         />
       ) : (
-        <Search size={12} className="text-indigo-smoke-400 shrink-0" />
+        <LuSearch size={12} className="text-indigo-smoke-400 shrink-0" />
       )}
 
       {expandedModel ? (
@@ -87,7 +93,7 @@ export function SearchBar({
           onClick={onClearQuery}
           className="text-slate-grey-600 hover:text-slate-grey-400 transition-colors"
         >
-          <X size={11} />
+          <LuX size={11} />
         </button>
       )}
 
@@ -95,7 +101,7 @@ export function SearchBar({
         onClick={onClose}
         className="text-slate-grey-700 hover:text-slate-grey-400 transition-colors shrink-0"
       >
-        <X size={11} />
+        <LuX size={11} />
       </button>
     </div>
   );

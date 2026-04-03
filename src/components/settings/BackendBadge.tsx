@@ -1,4 +1,4 @@
-import { Cpu, Zap } from "lucide-react";
+import { LuCpu, LuZap } from "react-icons/lu";
 
 interface BackendBadgeProps {
   backend: string;
@@ -15,7 +15,7 @@ export function BackendBadge({ backend }: BackendBadgeProps) {
       }`}
       title={isVulkan ? "Running on GPU via Vulkan" : "Running on CPU"}
     >
-      {isVulkan ? <Zap size={8} /> : <Cpu size={8} />}
+      {isVulkan ? <LuZap size={8} /> : <LuCpu size={8} />}
       {backend}
     </span>
   );

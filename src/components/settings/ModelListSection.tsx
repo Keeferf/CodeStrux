@@ -1,4 +1,4 @@
-import { HardDrive, Play, Trash2 } from "lucide-react";
+import { LuHardDrive, LuPlay, LuTrash2 } from "react-icons/lu";
 import { SectionHead } from "../ui";
 import { BackendBadge } from "./BackendBadge";
 import { formatBytes, type DownloadedModel } from "../../lib/Download";
@@ -56,25 +56,25 @@ export function ModelListSection({
                         className="text-slate-grey-600 hover:text-emerald-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
                         title="Load model"
                       >
-                        <Play size={11} />
+                        <LuPlay size={11} />
                       </button>
                     )}
                     <button
                       onClick={() => onDelete(m.model_id, m.filename)}
                       disabled={active || isLoading}
-                      className="text-slate-grey-700 hover:text-brick-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
+                      className="text-slate-grey-700 hover:text-red-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
                       title={
                         active
                           ? "Unload the model before deleting"
                           : "Delete model"
                       }
                     >
-                      <Trash2 size={11} />
+                      <LuTrash2 size={11} />
                     </button>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <HardDrive
+                  <LuHardDrive
                     size={9}
                     className="text-slate-grey-600 shrink-0"
                   />

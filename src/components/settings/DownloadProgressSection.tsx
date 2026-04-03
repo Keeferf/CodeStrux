@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { LuX } from "react-icons/lu";
 import { SectionHead } from "../ui";
 import { formatBytes, type DownloadProgress } from "../../lib/Download";
 
@@ -24,7 +24,7 @@ export function DownloadProgressSection({
             className="shrink-0 text-slate-grey-600 hover:text-brick-red-400 transition-colors"
             title="Cancel download"
           >
-            <X size={11} />
+            <LuX size={11} />
           </button>
         </div>
 

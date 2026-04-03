@@ -36,7 +36,7 @@ reqwest = { version = "0.13.2", default-features = false, features = [
 # blocking disk writer via per-chunk mpsc channels.
 bytes        = "1.11.1"
 futures-util = "0.3.32"
-tokio        = { version = "1.50.0", features = [
+tokio        = { version = "1.51.0", features = [
   "sync",            # mpsc channels for async↔blocking frame passing
   "fs",              # tokio::fs::File for pre-allocation only
   "io-util",         # AsyncWriteExt / AsyncSeekExt (pre-allocation)

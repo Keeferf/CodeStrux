@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronLeft } from "lucide-react";
+import { LuCircleCheck, LuChevronLeft } from "react-icons/lu";
 import type { HFModel } from "./useModelSearch";
 import { formatDownloads } from "./useModelSearch";
 
@@ -40,7 +40,7 @@ export function SearchResultsDropdown({
               }`}
             >
               {alreadyDownloaded && (
-                <CheckCircle2
+                <LuCircleCheck
                   size={11}
                   className="text-moss-green-500 shrink-0"
                 />
@@ -51,7 +51,7 @@ export function SearchResultsDropdown({
               <span className="shrink-0 font-mono text-[10px] text-slate-grey-600 tabular-nums w-12 text-right">
                 {formatDownloads(m.downloads)}↓
               </span>
-              <ChevronLeft
+              <LuChevronLeft
                 size={10}
                 className="text-slate-grey-700 rotate-180 shrink-0"
               />

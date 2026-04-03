@@ -1,4 +1,4 @@
-import { Loader2, Square } from "lucide-react";
+import { LuLoaderCircle, LuSquare, LuPlay } from "react-icons/lu";
 import { SectionHead } from "../ui";
 import { BackendBadge } from "./BackendBadge";
 import type { LoadedModelInfo, LoadingState } from "./useLocalModel";
@@ -22,7 +22,7 @@ export function ActiveModelSection({
 
       {isLoading && (
         <div className="rounded-md bg-slate-grey-950 border border-indigo-smoke-800/50 px-3 py-2.5 flex items-center gap-2">
-          <Loader2
+          <LuLoaderCircle
             size={11}
             className="text-indigo-smoke-400 animate-spin shrink-0"
           />
@@ -42,10 +42,10 @@ export function ActiveModelSection({
             </span>
             <button
               onClick={onUnload}
-              className="shrink-0 mt-0.5 text-slate-grey-600 hover:text-brick-red-400 transition-colors"
+              className="shrink-0 mt-0.5 text-slate-grey-600 hover:text-red-800 transition-colors"
               title="Unload model"
             >
-              <Square size={11} />
+              <LuSquare size={11} />
             </button>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -60,7 +60,9 @@ export function ActiveModelSection({
       {!loadedModel && !isLoading && (
         <div className="rounded-md bg-slate-grey-950 border border-slate-grey-800 px-3 py-2.5">
           <p className="font-body text-xs text-slate-grey-600 italic">
-            No model loaded. Click ▶ on a downloaded model below.
+            No model loaded. Click{" "}
+            <LuPlay size={10} className="inline-block align-text-center" /> on a
+            downloaded model below.
           </p>
         </div>
       )}

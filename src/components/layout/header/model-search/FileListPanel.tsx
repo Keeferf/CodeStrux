@@ -1,4 +1,4 @@
-import { Loader2, Download, CheckCircle2 } from "lucide-react";
+import { LuLoaderCircle, LuDownload, LuCircleCheck } from "react-icons/lu";
 import { formatBytes, type HFFile } from "../../../../lib/Download";
 
 interface FileListPanelProps {
@@ -24,7 +24,10 @@ export function FileListPanel({
     <div className="absolute top-full left-0 right-0 bg-slate-grey-950 border border-t-0 border-indigo-smoke-700 rounded-b-md overflow-hidden z-50 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
       {isFetchingFiles ? (
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <Loader2 size={11} className="text-indigo-smoke-400 animate-spin" />
+          <LuLoaderCircle
+            size={11}
+            className="text-indigo-smoke-400 animate-spin"
+          />
           <span className="font-mono text-xs text-slate-grey-500">
             Fetching GGUF files…
           </span>
@@ -66,15 +69,15 @@ export function FileListPanel({
                 >
                   {isDone ? (
                     <>
-                      <CheckCircle2 size={9} /> done
+                      <LuCircleCheck size={9} /> done
                     </>
                   ) : isDownloading ? (
                     <>
-                      <Loader2 size={9} className="animate-spin" /> …
+                      <LuLoaderCircle size={9} className="animate-spin" /> …
                     </>
                   ) : (
                     <>
-                      <Download size={9} /> get
+                      <LuDownload size={9} /> get
                     </>
                   )}
                 </button>
