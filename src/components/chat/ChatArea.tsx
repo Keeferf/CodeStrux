@@ -47,16 +47,13 @@ export function ChatArea({
         </span>
       </div>
 
-      {/* Extra bottom padding so messages don't hide under the floating bar */}
-      <div className="flex-1 overflow-y-auto pb-28 flex flex-col">
-        <MessageList messages={messages} isLoading={isLoading} />
+      <MessageList messages={messages} isLoading={isLoading} />
 
-        {error && (
-          <div className="mx-4.5 mb-2 px-3 py-2 rounded-md bg-red-950/60 border border-red-900 font-mono text-xs text-red-400">
-            {error}
-          </div>
-        )}
-      </div>
+      {error && (
+        <div className="mx-4.5 mb-2 px-3 py-2 rounded-md bg-red-950/60 border border-red-900 font-mono text-xs text-red-400">
+          {error}
+        </div>
+      )}
 
       <InputBar
         input={input}

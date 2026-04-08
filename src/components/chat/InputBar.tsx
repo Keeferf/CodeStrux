@@ -39,8 +39,8 @@ export function InputBar({
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-4 pointer-events-none">
-      <div className="pointer-events-auto max-w-3xl mx-auto flex flex-col gap-0">
+    <div className="absolute bottom-0 left-0 right-0 flex justify-center px-4 pb-4 pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-[90%] min-w-0 flex flex-col gap-0 mx-auto">
         {/* File attachment area */}
         <div
           className={`transition-all duration-200 overflow-hidden ${
