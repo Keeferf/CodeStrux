@@ -15,12 +15,17 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   }, [messages]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 pt-2.5">
+    <div className="flex-1 overflow-y-auto px-6 pt-2.5 flex flex-col">
       {messages.length === 0 ? (
-        <div className="h-full flex items-center justify-center">
-          <p className="font-body text-sm text-center text-warm-grey-600">
-            no messages yet
-          </p>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="font-display text-sm uppercase tracking-wider text-warm-grey-600 mb-2">
+              No messages yet
+            </div>
+            <p className="font-display text-xs text-warm-grey-600">
+              Type a message below to start the conversation
+            </p>
+          </div>
         </div>
       ) : (
         <>

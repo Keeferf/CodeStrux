@@ -16,7 +16,7 @@ tauri-build = { version = "2.5.6", features = [] }
 tauri               = { version = "2.10.3", features = [] }
 tauri-plugin-opener = "2.5.3"
 tauri-plugin-store  = "2.4.2"
-tauri-plugin-shell = "2.3.5"
+tauri-plugin-shell  = "2.3.5"
 
 serde      = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
@@ -29,21 +29,24 @@ rusqlite = { version = "0.39.0", features = ["bundled"] }
 # http2 is intentionally absent — the download client forces HTTP/1.1
 # so each chunk gets its own TCP connection rather than being multiplexed.
 reqwest = { version = "0.13.2", default-features = false, features = [
-  "rustls",
+  "rustls",     
   "stream",
+  "json",
 ] }
 # bytes: zero-copy frame passing between async network receiver and
 # blocking disk writer via per-chunk mpsc channels.
 bytes        = "1.11.1"
 futures-util = "0.3.32"
 tokio        = { version = "1.51.0", features = [
-  "sync",            # mpsc channels for async↔blocking frame passing
-  "fs",              # tokio::fs::File for pre-allocation only
-  "io-util",         # AsyncWriteExt / AsyncSeekExt (pre-allocation)
-  "macros",          # #[tokio::main]
-  "rt-multi-thread",
-  "time",            # tokio::time::interval / sleep
-  "process",         # tokio::process::Command for llama-server subprocess
+  "sync",           
+  "fs",              
+  "io-util",         
+  "macros",         
+  "rt-multi-thread", 
+  "rt",              
+  "time",           
+  "process",
+  "parking_lot",    
 ] }
 
 [target.'cfg(windows)'.dependencies]

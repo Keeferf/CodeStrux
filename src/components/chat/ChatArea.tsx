@@ -1,15 +1,19 @@
 import type { ChatMessage, CreativityKey, Session } from "../../types";
 import { MessageList } from "./MessageList";
 import { InputBar } from "./InputBar";
+import { AttachedFile } from "./FileAttachment";
 
 interface ChatAreaProps {
   activeSession: Session;
   messages: ChatMessage[];
   input: string;
   creativity: CreativityKey;
+  attachedFiles: AttachedFile[];
   onInputChange: (value: string) => void;
   onSend: () => void | Promise<void>;
   onStop: () => void | Promise<void>;
+  onFilesAttach: (files: AttachedFile[]) => void;
+  onFileRemove: (fileId: string) => void;
   isLoading: boolean;
   error: string | null;
 }
@@ -18,18 +22,22 @@ export function ChatArea({
   activeSession,
   messages,
   input,
+  attachedFiles,
   onInputChange,
   onSend,
   onStop,
+  onFilesAttach,
+  onFileRemove,
   isLoading,
   error,
 }: ChatAreaProps) {
-  const canSend = input.trim().length > 0 && !isLoading;
+  const canSend =
+    (input.trim().length > 0 || attachedFiles.length > 0) && !isLoading;
   const nonSystemCount = messages.filter((m) => m.role !== "system").length;
 
   return (
-    <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-      <div className="shrink-0 flex items-center gap-2.5 px-4.5 py-2.5 bg-slate-grey-900 border-b border-slate-grey-800">
+    <main className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+      <div className="shrink-0 flex items-center gap-2.5 px-4.5 py-2 bg-slate-grey-900 border-b border-slate-grey-800">
         <span className="font-body text-sm font-semibold text-parchment-200">
           {activeSession.title}
         </span>
@@ -39,21 +47,27 @@ export function ChatArea({
         </span>
       </div>
 
-      <MessageList messages={messages} isLoading={isLoading} />
+      {/* Extra bottom padding so messages don't hide under the floating bar */}
+      <div className="flex-1 overflow-y-auto pb-28 flex flex-col">
+        <MessageList messages={messages} isLoading={isLoading} />
 
-      {error && (
-        <div className="shrink-0 mx-4.5 mb-2 px-3 py-2 rounded-md bg-red-950/60 border border-red-900 font-mono text-xs text-red-400">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mx-4.5 mb-2 px-3 py-2 rounded-md bg-red-950/60 border border-red-900 font-mono text-xs text-red-400">
+            {error}
+          </div>
+        )}
+      </div>
 
       <InputBar
         input={input}
         canSend={canSend}
         isLoading={isLoading}
+        attachedFiles={attachedFiles}
         onInputChange={onInputChange}
         onSend={onSend}
         onStop={onStop}
+        onFilesAttach={onFilesAttach}
+        onFileRemove={onFileRemove}
       />
     </main>
   );

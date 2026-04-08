@@ -6,6 +6,7 @@ import type { ChatMessage, CreativityKey, Session } from "./types";
 import { Header, Sidebar } from "./components/layout";
 import { ChatArea } from "./components/chat";
 import { SettingsPanel } from "./components/settings";
+import { AttachedFile } from "./components/chat/FileAttachment";
 import {
   getDownloadedModels,
   cancelDownload,
@@ -59,8 +60,9 @@ export default function App() {
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [creativity, setCreativity] = useState<CreativityKey>("balanced");
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +101,8 @@ export default function App() {
             { id: tempId, title: "New session", model: "local", time: "now" },
           ]);
           setActiveSessionId(tempId);
+          setMessages([]);
+          activeConvId.current = null;
         } else {
           const mapped = convs.map(convToSession);
           convs.forEach((c) =>
@@ -106,8 +110,8 @@ export default function App() {
           );
           setSessions(mapped);
           setActiveSessionId(mapped[0].id);
-          activeConvId.current = convs[0].id;
-          loadMessagesForConv(convs[0].id);
+          activeConvId.current = null;
+          setMessages([]);
         }
       })
       .catch(() => {
@@ -116,6 +120,8 @@ export default function App() {
           { id: tempId, title: "New session", model: "local", time: "now" },
         ]);
         setActiveSessionId(tempId);
+        setMessages([]);
+        activeConvId.current = null;
       });
   }, [isReady]);
 
@@ -197,6 +203,7 @@ export default function App() {
     handleStop();
     setMessages([]);
     setError(null);
+    setAttachedFiles([]); // Clear attached files when switching sessions
     activeConvId.current = null;
     streamedReply.current = "";
   };
@@ -259,10 +266,37 @@ export default function App() {
     }
   };
 
+  // ── File attachment handlers ──────────────────────────────────────────────
+
+  const handleFilesAttach = (files: AttachedFile[]) => {
+    setAttachedFiles((prev) => [...prev, ...files]);
+  };
+
+  const handleFileRemove = (fileId: string) => {
+    setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
+  // Helper to format attached files for the AI context
+  const formatAttachedFilesForContext = (files: AttachedFile[]): string => {
+    if (files.length === 0) return "";
+
+    const fileContext = files
+      .map(
+        (file) =>
+          `\n\n--- File: ${file.name} (${(file.size / 1024).toFixed(1)} KB) ---\n` +
+          `\`\`\`\n${file.content}\n\`\`\`\n` +
+          `--- End of ${file.name} ---`,
+      )
+      .join("\n");
+
+    return `\n\n## Attached Files:\n${fileContext}\n\n## User Question:\n`;
+  };
+
   // ── Chat handlers ─────────────────────────────────────────────────────────
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    const hasContent = input.trim().length > 0 || attachedFiles.length > 0;
+    if (!hasContent || isLoading) return;
 
     if (!loadedModel) {
       setError(
@@ -272,8 +306,18 @@ export default function App() {
     }
 
     setError(null);
+
+    // Combine user input with attached files
+    const fileContext = formatAttachedFilesForContext(attachedFiles);
     const userText = input.trim();
+    const fullUserMessage = fileContext
+      ? `${fileContext}${userText || "Please analyze the attached files."}`
+      : userText;
+
+    // Clear input and attachments immediately
     setInput("");
+    const currentAttachedFiles = [...attachedFiles]; // Save for potential error recovery
+    setAttachedFiles([]);
 
     // ── 1. Ensure a DB conversation exists ────────────────────────────────
     const isFirstMessage = !activeConvId.current;
@@ -294,6 +338,7 @@ export default function App() {
         }
       } catch {
         setError("Could not create conversation record.");
+        setAttachedFiles(currentAttachedFiles); // Restore files on error
         return;
       }
     }
@@ -303,12 +348,12 @@ export default function App() {
       const savedUser = await invoke<StoredMessage>("append_message", {
         conversationId: convId,
         role: "user",
-        content: userText,
+        content: fullUserMessage,
       });
 
-      // Title: first 60 chars of the first user message, applied immediately.
+      // Title: first 60 chars of the first user message (without file context)
       if (isFirstMessage) {
-        const title = userText.slice(0, 60);
+        const title = (userText || "File analysis").slice(0, 60);
         invoke("rename_conversation", { conversationId: convId, title }).catch(
           () => {},
         );
@@ -320,7 +365,7 @@ export default function App() {
       const userMsg: ChatMessage = {
         id: savedUser.id,
         role: "user",
-        content: userText,
+        content: fullUserMessage,
       };
       const assistantPlaceholderId = Date.now();
       const assistantMsg: ChatMessage = {
@@ -333,6 +378,7 @@ export default function App() {
       setIsLoading(true);
       streamedReply.current = "";
 
+      // Build history for AI (without file context in history since it's already in user message)
       const history = [...messages, userMsg]
         .filter((m) => m.role !== "system")
         .map((m) => ({
@@ -398,6 +444,8 @@ export default function App() {
           chatUnlistensRef.current.forEach((fn) => fn());
           chatUnlistensRef.current = [];
           streamedReply.current = "";
+          // Restore files on error
+          setAttachedFiles(currentAttachedFiles);
         }),
       ]);
 
@@ -410,6 +458,8 @@ export default function App() {
       chatUnlistensRef.current.forEach((fn) => fn());
       chatUnlistensRef.current = [];
       streamedReply.current = "";
+      // Restore files on error
+      setAttachedFiles(currentAttachedFiles);
     }
   };
 
@@ -452,9 +502,12 @@ export default function App() {
           messages={messages}
           input={input}
           creativity={creativity}
+          attachedFiles={attachedFiles}
           onInputChange={setInput}
           onSend={handleSend}
           onStop={handleStop}
+          onFilesAttach={handleFilesAttach}
+          onFileRemove={handleFileRemove}
           isLoading={isLoading}
           error={error}
         />

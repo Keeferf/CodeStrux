@@ -124,3 +124,46 @@
   --font-body: "IBM Plex Serif", Georgia, serif;
   --font-mono: "Cascadia Code", "Cascadia Mono", "Fira Code", monospace;
 }
+
+/* Add custom font utility classes */
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-body {
+    font-family: var(--font-body);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Set default body font */
+@layer base {
+  body {
+    font-family: var(--font-body);
+  }
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate-grey-700);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-slate-grey-600);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-slate-grey-700) transparent;
+}

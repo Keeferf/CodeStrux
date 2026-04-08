@@ -34,29 +34,53 @@ function MetricBlock({
   );
 }
 
+// ── Loading skeleton ─────────────────────────────────────────────────────────
+
+function HardwarePanelSkeleton() {
+  return (
+    <div className="flex flex-col gap-1.5 animate-pulse">
+      <div className="rounded-md bg-slate-grey-950 border border-slate-grey-800 px-3 py-2.5 flex flex-col gap-1.5">
+        <span className="font-display text-[11px] font-semibold uppercase tracking-wider text-slate-grey-500">
+          CPU
+        </span>
+        <div className="flex flex-col gap-1">
+          <div className="h-3 bg-slate-grey-800 rounded w-3/4" />
+          <div className="h-3 bg-slate-grey-800 rounded w-1/2" />
+        </div>
+      </div>
+      <div className="rounded-md bg-slate-grey-950 border border-slate-grey-800 px-3 py-2.5 flex flex-col gap-1.5">
+        <span className="font-display text-[11px] font-semibold uppercase tracking-wider text-slate-grey-500">
+          GPU
+        </span>
+        <div className="h-3 bg-slate-grey-800 rounded w-5/6" />
+      </div>
+      <div className="rounded-md bg-slate-grey-950 border border-slate-grey-800 px-3 py-2.5 flex flex-col gap-1.5">
+        <span className="font-display text-[11px] font-semibold uppercase tracking-wider text-slate-grey-500">
+          RAM
+        </span>
+        <div className="h-3 bg-slate-grey-800 rounded w-2/3" />
+      </div>
+    </div>
+  );
+}
+
 // ── Main panel ───────────────────────────────────────────────────────────────
 
 export function HardwarePanel() {
   const { data, error, isLoading } = useHardware({ interval: 2000 });
-
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-2 animate-pulse">
-        {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="h-14 rounded-md bg-slate-grey-900 border border-slate-grey-800"
-          />
-        ))}
-      </div>
-    );
+    return <HardwarePanelSkeleton />;
   }
 
   if (error || !data) {
     return (
-      <p className="font-mono text-[11px] text-brick-red-600 px-1">
-        {error ?? "Failed to read hardware info."}
-      </p>
+      <div>
+        <div className="rounded-md bg-slate-grey-950 border border-slate-grey-800 px-3 py-2.5">
+          <p className="font-mono text-[11px] text-brick-red-600 px-1">
+            {error ?? "Failed to read hardware info."}
+          </p>
+        </div>
+      </div>
     );
   }
 

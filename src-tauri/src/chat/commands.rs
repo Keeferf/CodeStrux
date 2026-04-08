@@ -11,17 +11,18 @@
 //! 4. `unload_local_model` — kills the server and frees memory.
 
 use std::sync::{atomic::Ordering, Arc};
+use std::path::PathBuf;
 
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter, Manager, State};
-use tauri_plugin_shell::process::CommandChild;          // ← new
+use tauri_plugin_shell::process::CommandChild;
 
 use crate::model_storage::get_downloaded_models_internal;
+use crate::rag::{self, RAGConfig, retrieval::enhance_with_rag, vector_storage::VectorStorage};
 
 use super::{
     logging::write_log,
     server::{kill_server, resolve_candidates, spawn_server, wait_for_health, SERVER_PORT},
-    // ↑ removed BIN_CPU, BIN_VULKAN (no longer needed here)
     state::LocalChatState,
     types::{LoadedModelInfo, Message},
 };
@@ -72,7 +73,7 @@ pub async fn load_local_model(
     // ── 2. Kill any currently-running server ──────────────────────────────────
     let old_child = state.server.lock().unwrap().take();
     if let Some(child) = old_child {
-        kill_server(child)?;                            // ← now sync, owned, returns Result
+        kill_server(child)?;
     }
     *state.loaded.lock().unwrap() = None;
 
@@ -88,11 +89,9 @@ pub async fn load_local_model(
     ));
 
     // ── 4. Resolve candidates ─────────────────────────────────────────────────
-    // resolve_candidates() no longer needs resource_dir — Tauri handles paths.
-    let mut candidates = resolve_candidates();          // ← no args
+    let mut candidates = resolve_candidates();
 
     // ── 5. Move the cached backend to the front ───────────────────────────────
-    // If we already know which backend works on this machine, try it first.
     let cached = state.active_bin.lock().unwrap().clone();
     if let Some(ref cached_name) = cached {
         if let Some(pos) = candidates.iter().position(|c| c.name == cached_name) {
@@ -124,7 +123,6 @@ pub async fn load_local_model(
             }
         };
 
-        // wait_for_health no longer takes &mut child
         match wait_for_health(&state.client, candidate.timeout, &log_path, candidate.backend).await {
             Ok(()) => {
                 let info = LoadedModelInfo {
@@ -134,7 +132,7 @@ pub async fn load_local_model(
                 };
                 *state.server.lock().unwrap()     = Some(child);
                 *state.loaded.lock().unwrap()     = Some(info.clone());
-                *state.active_bin.lock().unwrap() = Some(candidate.name.to_string()); // ← was PathBuf, now String
+                *state.active_bin.lock().unwrap() = Some(candidate.name.to_string());
                 let _ = app.emit("model-loaded", &info);
                 return Ok(());
             }
@@ -145,9 +143,8 @@ pub async fn load_local_model(
                     "reason":  &last_error,
                 }));
 
-                kill_server(child)?;                    // ← sync, owned
+                kill_server(child)?;
 
-                // Clear the cache if the cached backend just failed
                 if cached.as_deref() == Some(candidate.name) {
                     *state.active_bin.lock().unwrap() = None;
                 }
@@ -172,15 +169,14 @@ pub async fn load_local_model(
 pub async fn unload_local_model(state: State<'_, LocalChatState>) -> Result<(), String> {
     let old_child = state.server.lock().unwrap().take();
     if let Some(child) = old_child {
-        kill_server(child)?;                            // ← sync, owned
+        kill_server(child)?;
     }
     *state.loaded.lock().unwrap() = None;
     Ok(())
 }
 
-// start_local_chat and stop_local_chat are unchanged
-#[tauri::command]
-pub async fn start_local_chat(
+/// Internal implementation of chat streaming (without RAG)
+async fn start_local_chat_impl(
     app: AppHandle,
     state: State<'_, LocalChatState>,
     messages: Vec<Message>,
@@ -262,6 +258,91 @@ pub async fn start_local_chat(
     Ok(())
 }
 
+/// Start a local chat without RAG enhancement (original behavior)
+#[tauri::command]
+pub async fn start_local_chat(
+    app: AppHandle,
+    state: State<'_, LocalChatState>,
+    messages: Vec<Message>,
+) -> Result<(), String> {
+    start_local_chat_impl(app, state, messages).await
+}
+
+/// Start a local chat with optional RAG enhancement
+#[tauri::command]
+pub async fn start_local_chat_with_rag(
+    app: AppHandle,
+    state: State<'_, LocalChatState>,
+    messages: Vec<Message>,
+    use_rag: bool,
+    conversation_id: Option<String>,
+) -> Result<(), String> {
+    let mut enhanced_messages = messages.clone();
+    
+    if use_rag {
+        // Get the last user message to use as query
+        if let Some(last_user_msg) = messages.iter().rev().find(|m| m.role == "user") {
+            let config = RAGConfig::default();
+            let vector_storage = match VectorStorage::new(&app, config.clone()) {
+                Ok(vs) => vs,
+                Err(e) => {
+                    let msg = format!("Failed to initialize RAG vector storage: {}", e);
+                    let _ = app.emit("local-chat-error", &msg);
+                    return Err(msg);
+                }
+            };
+            
+            let log_path = app
+                .path()
+                .app_data_dir()
+                .map(|d| d.join("rag.log"))
+                .unwrap_or_else(|_| PathBuf::from("rag.log"));
+            
+            // Emit that we're searching for relevant context
+            let _ = app.emit("rag-searching", serde_json::json!({
+                "query": &last_user_msg.content,
+            }));
+            
+            match enhance_with_rag(
+                &app,
+                &vector_storage,
+                &state.client,
+                SERVER_PORT,
+                &last_user_msg.content,
+                conversation_id.as_deref(),
+                &config,
+                &log_path,
+            ).await {
+                Ok(rag_context) => {
+                    if !rag_context.relevant_chunks.is_empty() {
+                        // Emit how many chunks were found
+                        let _ = app.emit("rag-context-found", serde_json::json!({
+                            "chunk_count": rag_context.relevant_chunks.len(),
+                        }));
+                        
+                        let enhanced_prompt = rag::retrieval::build_rag_prompt(&rag_context, &last_user_msg.content);
+                        if let Some(last) = enhanced_messages.last_mut() {
+                            if last.role == "user" {
+                                last.content = enhanced_prompt;
+                            }
+                        }
+                    } else {
+                        let _ = app.emit("rag-context-empty", ());
+                    }
+                }
+                Err(e) => {
+                    let msg = format!("RAG search failed: {}", e);
+                    let _ = app.emit("local-chat-error", &msg);
+                    // Continue without RAG enhancement
+                }
+            }
+        }
+    }
+    
+    start_local_chat_impl(app, state, enhanced_messages).await
+}
+
+/// Stop the currently running chat
 #[tauri::command]
 pub fn stop_local_chat(state: State<'_, LocalChatState>) {
     state.cancel.store(true, Ordering::SeqCst);

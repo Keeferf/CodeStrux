@@ -8,6 +8,7 @@ mod hardware;
 mod chat;
 mod model_storage;
 pub mod chat_storage;
+pub mod rag;  // Add RAG module
 
 use tauri::Manager;
 use download::DownloadState;
@@ -40,6 +41,7 @@ pub fn run() {
             chat::commands::load_local_model,
             chat::commands::unload_local_model,
             chat::commands::start_local_chat,
+            chat::commands::start_local_chat_with_rag,  // Add RAG-enhanced chat
             chat::commands::stop_local_chat,
             // chat persistence
             chat_storage::create_conversation,
@@ -48,6 +50,11 @@ pub fn run() {
             chat_storage::append_message,
             chat_storage::rename_conversation,
             chat_storage::delete_conversation,
+            // RAG commands
+            rag::commands::add_document_to_rag,
+            rag::commands::search_documents,
+            rag::commands::delete_conversation_rag_documents,
+            rag::commands::list_rag_documents,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
