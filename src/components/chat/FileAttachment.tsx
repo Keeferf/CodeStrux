@@ -64,7 +64,6 @@ export const FileAttachment = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ✅ Parent-controlled trigger
   useImperativeHandle(ref, () => ({
     openFilePicker: () => {
       if (!disabled) fileInputRef.current?.click();
@@ -165,7 +164,7 @@ export const FileAttachment = forwardRef<
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       {/* Hidden input */}
       <input
         ref={fileInputRef}
@@ -178,25 +177,29 @@ export const FileAttachment = forwardRef<
       />
 
       {/* File preview */}
-      <div className="flex flex-wrap gap-2 mb-2">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,auto))] gap-2">
         {attachedFiles.map((file) => (
           <div
             key={file.id}
-            className="flex items-center gap-1.5 px-2 py-1 bg-slate-grey-800 rounded-md border border-slate-grey-700 text-xs"
+            className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-grey-800 rounded-md border border-slate-grey-700 w-48"
           >
-            {getFileIcon(file.name)}
-            <span className="text-parchment-200 max-w-37.5 truncate">
-              {file.name}
+            <span className="shrink-0 text-slate-grey-400">
+              {getFileIcon(file.name)}
             </span>
-            <span className="text-slate-grey-500 text-[10px]">
-              {formatFileSize(file.size)}
-            </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-parchment-200 text-xs font-mono truncate leading-normal">
+                {file.name}
+              </div>
+              <div className="text-slate-grey-500 text-[11px] font-mono leading-normal">
+                {formatFileSize(file.size)}
+              </div>
+            </div>
             <button
               onClick={() => onFileRemove(file.id)}
               disabled={disabled}
-              className="ml-1 hover:text-brick-red-400"
+              className="cursor-pointer shrink-0 self-center text-slate-grey-500 hover:text-red-800 transition-colors duration-200"
             >
-              <LuX size={12} />
+              <LuX size={13} />
             </button>
           </div>
         ))}
@@ -204,7 +207,7 @@ export const FileAttachment = forwardRef<
 
       {/* Error */}
       {error && (
-        <div className="mb-2 text-xs text-brick-red-400 bg-brick-red-950/30 px-2 py-1 rounded">
+        <div className="mt-2 text-xs text-brick-red-400 bg-brick-red-950/30 px-2 py-1 rounded">
           {error}
         </div>
       )}

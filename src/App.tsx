@@ -62,7 +62,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [creativity, setCreativity] = useState<CreativityKey>("balanced");
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +101,8 @@ export default function App() {
             { id: tempId, title: "New session", model: "local", time: "now" },
           ]);
           setActiveSessionId(tempId);
+          setMessages([]);
+          activeConvId.current = null;
         } else {
           const mapped = convs.map(convToSession);
           convs.forEach((c) =>
@@ -108,8 +110,8 @@ export default function App() {
           );
           setSessions(mapped);
           setActiveSessionId(mapped[0].id);
-          activeConvId.current = convs[0].id;
-          loadMessagesForConv(convs[0].id);
+          activeConvId.current = null;
+          setMessages([]);
         }
       })
       .catch(() => {
@@ -118,6 +120,8 @@ export default function App() {
           { id: tempId, title: "New session", model: "local", time: "now" },
         ]);
         setActiveSessionId(tempId);
+        setMessages([]);
+        activeConvId.current = null;
       });
   }, [isReady]);
 
