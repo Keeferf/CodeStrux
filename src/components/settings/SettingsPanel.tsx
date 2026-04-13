@@ -36,7 +36,7 @@ export function SettingsPanel({
   } = useLocalModel(onModelsChanged);
 
   return (
-    <aside className="w-60 shrink-0 overflow-y-auto px-4 py-3.5 bg-slate-grey-900 border-l border-slate-grey-800 flex flex-col gap-5">
+    <aside className="w-58 shrink-0 overflow-y-auto px-4 py-3.5 bg-slate-grey-900 border-l border-slate-grey-800 flex flex-col gap-5">
       {activeDownload && (
         <DownloadProgressSection
           activeDownload={activeDownload}

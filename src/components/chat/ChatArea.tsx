@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ChatMessage, CreativityKey, Session } from "../../types";
 import { MessageList } from "./MessageList";
 import { InputBar } from "./InputBar";
@@ -31,6 +32,8 @@ export function ChatArea({
   isLoading,
   error,
 }: ChatAreaProps) {
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+
   const canSend =
     (input.trim().length > 0 || attachedFiles.length > 0) && !isLoading;
   const nonSystemCount = messages.filter((m) => m.role !== "system").length;
@@ -47,7 +50,13 @@ export function ChatArea({
         </span>
       </div>
 
-      <MessageList messages={messages} isLoading={isLoading} />
+      <div className="flex-1 overflow-hidden min-w-0 flex flex-col">
+        <MessageList
+          messages={messages}
+          isLoading={isLoading}
+          onScrollbarWidth={setScrollbarWidth}
+        />
+      </div>
 
       {error && (
         <div className="mx-4.5 mb-2 px-3 py-2 rounded-md bg-red-950/60 border border-red-900 font-mono text-xs text-red-400">
@@ -65,6 +74,7 @@ export function ChatArea({
         onStop={onStop}
         onFilesAttach={onFilesAttach}
         onFileRemove={onFileRemove}
+        scrollbarWidth={scrollbarWidth}
       />
     </main>
   );

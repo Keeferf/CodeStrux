@@ -5,17 +5,37 @@ import { Message } from "./Message";
 interface MessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
+  onScrollbarWidth?: (width: number) => void;
 }
 
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export function MessageList({
+  messages,
+  isLoading,
+  onScrollbarWidth,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (!containerRef.current || !onScrollbarWidth) return;
+    const el = containerRef.current;
+    const measure = () => onScrollbarWidth(el.offsetWidth - el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [onScrollbarWidth]);
+
   return (
-    <div className="flex-1 overflow-y-auto px-6 pt-2.5 pb-32 flex flex-col">
+    <div
+      ref={containerRef}
+      className="flex-1 overflow-y-auto px-40 pt-2.5 pb-24 flex flex-col"
+      style={{ scrollbarGutter: "stable" }}
+    >
       {messages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">

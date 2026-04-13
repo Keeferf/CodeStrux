@@ -74,7 +74,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-55 shrink-0 flex flex-col bg-slate-grey-900 border-r border-slate-grey-800 overflow-hidden">
+    <aside className="w-58 shrink-0 flex flex-col bg-slate-grey-900 border-r border-slate-grey-800 overflow-hidden">
       <div className="flex-1 overflow-y-auto p-2">
         <div className="flex justify-between items-center mb-2 px-1">
           <span className="font-display text-[10px] uppercase tracking-[1.2px] text-slate-grey-500">

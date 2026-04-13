@@ -19,58 +19,36 @@ export function Message({ message }: MessageProps) {
   }
 
   const isUser = message.role === "user";
-
-  // Split content into code blocks and text (only for assistant messages)
   const parts = !isUser ? message.content.split(/(```[\s\S]*?```)/g) : null;
 
   return (
     <div
       className={`flex gap-3 py-3.5 items-start ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
-      <div
-        className={`w-7.5 h-7.5 rounded-md shrink-0 flex items-center justify-center font-mono text-[11px] font-bold ${
-          isUser
-            ? "bg-indigo-smoke-900/60 border border-indigo-smoke-700 text-indigo-smoke-400"
-            : "bg-slate-grey-900 border border-slate-grey-800 text-warm-grey-500"
-        }`}
-      >
-        {isUser ? "you" : "ai"}
-      </div>
-
-      <div className="max-w-[76%] min-w-0">
-        <div
-          className={`font-display text-[10px] mb-1.5 text-warm-grey-600 ${isUser ? "text-right" : "text-left"}`}
-        >
-          {isUser ? "user" : "assistant"}
-        </div>
+      <div className={`min-w-0 ${isUser ? "max-w-[75%] self-end" : "flex-1"}`}>
         <div
           className={`px-3.75 py-3 font-body text-sm leading-[1.7] text-parchment-200 ${
             isUser
-              ? "bg-indigo-smoke-950/50 border border-indigo-smoke-800 rounded-[10px_2px_10px_10px]"
+              ? "bg-indigo-smoke-800/60 border border-indigo-smoke-600 rounded-[10px_2px_10px_10px]"
               : "bg-slate-grey-900 border border-slate-grey-800 rounded-[2px_10px_10px_10px]"
           }`}
         >
           {isUser ? (
-            // User messages: render as plain text
             <span className="whitespace-pre-wrap">{message.content}</span>
           ) : (
-            // Assistant messages: render code blocks with your CodeBlock, and text with markdown
             parts?.map((part, i) => {
               if (part.startsWith("```")) {
-                // This is a code block - use your existing CodeBlock component
                 const lines = part.slice(3, -3).split("\n");
                 const lang = lines[0]?.trim() || "code";
                 const code = lines.slice(1).join("\n");
                 return <CodeBlock key={i} lang={lang} code={code} />;
               }
 
-              // This is regular text - render with markdown
               return (
                 <ReactMarkdown
                   key={i}
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    // Customize markdown elements to match your design system
                     p({ children }) {
                       return (
                         <span className="block mb-2 last:mb-0">{children}</span>
