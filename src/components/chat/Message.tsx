@@ -19,19 +19,17 @@ export function Message({ message }: MessageProps) {
   }
 
   const isUser = message.role === "user";
-
-  // Split content into code blocks and text (only for assistant messages)
   const parts = !isUser ? message.content.split(/(```[\s\S]*?```)/g) : null;
 
   return (
     <div
       className={`flex gap-3 py-3.5 items-start ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
-      <div className="min-w-0 flex-1">
+      <div className={`min-w-0 ${isUser ? "max-w-[75%] self-end" : "flex-1"}`}>
         <div
           className={`px-3.75 py-3 font-body text-sm leading-[1.7] text-parchment-200 ${
             isUser
-              ? "bg-indigo-smoke-950/50 border border-indigo-smoke-800 rounded-[10px_2px_10px_10px]"
+              ? "bg-indigo-smoke-800/60 border border-indigo-smoke-600 rounded-[10px_2px_10px_10px]"
               : "bg-slate-grey-900 border border-slate-grey-800 rounded-[2px_10px_10px_10px]"
           }`}
         >
