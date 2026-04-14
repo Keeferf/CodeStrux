@@ -12,14 +12,3 @@ export interface Session {
   model: string;
   time: string;
 }
-
-export type CreativityKey = "precise" | "balanced" | "creative";
-
-export interface CreativityMode {
-  label: string;
-  temp: number;
-  desc: string;
-  accent: string;
-}
-
-export type CreativityModes = Record<CreativityKey, CreativityMode>;

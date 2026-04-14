@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ChatMessage, CreativityKey, Session } from "../../types";
+import type { ChatMessage, Session } from "../../types";
 import { MessageList } from "./MessageList";
 import { InputBar } from "./InputBar";
 import { AttachedFile } from "./FileAttachment";
@@ -8,7 +8,6 @@ interface ChatAreaProps {
   activeSession: Session;
   messages: ChatMessage[];
   input: string;
-  creativity: CreativityKey;
   attachedFiles: AttachedFile[];
   onInputChange: (value: string) => void;
   onSend: () => void | Promise<void>;

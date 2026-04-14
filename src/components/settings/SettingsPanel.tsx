@@ -1,4 +1,3 @@
-import type { CreativityKey } from "../../types";
 import { HardwarePanel } from "../hardware";
 import { SectionHead } from "../ui";
 import type { DownloadedModel, DownloadProgress } from "../../lib/Download";
@@ -6,22 +5,17 @@ import { useLocalModel } from "./useLocalModel";
 import { ActiveModelSection } from "./ActiveModelSection";
 import { ModelListSection } from "./ModelListSection";
 import { DownloadProgressSection } from "./DownloadProgressSection";
-import { CreativitySection } from "./CreativitySection";
 
 interface SettingsPanelProps {
-  creativity: CreativityKey;
   downloadedModels: DownloadedModel[];
   activeDownload: DownloadProgress | null;
-  onCreativityChange: (key: CreativityKey) => void;
   onCancelDownload: () => void;
   onModelsChanged: () => void;
 }
 
 export function SettingsPanel({
-  creativity,
   downloadedModels,
   activeDownload,
-  onCreativityChange,
   onCancelDownload,
   onModelsChanged,
 }: SettingsPanelProps) {
@@ -57,11 +51,6 @@ export function SettingsPanel({
         isLoaded={isLoaded}
         onLoad={loadModel}
         onDelete={deleteModel}
-      />
-
-      <CreativitySection
-        creativity={creativity}
-        onChange={onCreativityChange}
       />
 
       <div>

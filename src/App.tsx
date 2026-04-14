@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
-import type { ChatMessage, CreativityKey, Session } from "./types";
+import type { ChatMessage, Session } from "./types";
 import { Header, Sidebar } from "./components/layout";
 import { ChatArea } from "./components/chat";
 import { SettingsPanel } from "./components/settings";
@@ -61,7 +61,6 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
-  const [creativity, setCreativity] = useState<CreativityKey>("balanced");
   const [showSettings, setShowSettings] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -501,7 +500,6 @@ export default function App() {
           activeSession={activeSession}
           messages={messages}
           input={input}
-          creativity={creativity}
           attachedFiles={attachedFiles}
           onInputChange={setInput}
           onSend={handleSend}
@@ -513,10 +511,8 @@ export default function App() {
         />
         {showSettings && (
           <SettingsPanel
-            creativity={creativity}
             downloadedModels={downloadedModels}
             activeDownload={activeDownload}
-            onCreativityChange={setCreativity}
             onCancelDownload={handleCancelDownload}
             onModelsChanged={refreshDownloadedModels}
           />
