@@ -1,4 +1,4 @@
-import { LuSend, LuSquare, LuPaperclip } from "react-icons/lu";
+import { LuSend, LuSquare } from "react-icons/lu";
 import { useRef, useEffect } from "react";
 import {
   FileAttachment,
