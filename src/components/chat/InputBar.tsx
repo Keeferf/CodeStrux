@@ -41,9 +41,9 @@ export function InputBar({
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-4 pointer-events-none bg-slate-grey-950">
+    <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none">
       <div
-        className="pointer-events-auto w-full max-w-[calc(100%-19rem)] min-w-0 flex flex-col gap-0"
+        className="pointer-events-auto w-full max-w-[calc(100%-19rem)] min-w-0 flex flex-col gap-0 pb-4 bg-slate-grey-950"
         style={{ transform: `translateX(-${scrollbarWidth / 2}px)` }}
       >
         {/* File attachment area */}
