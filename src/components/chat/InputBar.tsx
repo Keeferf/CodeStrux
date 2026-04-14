@@ -1,5 +1,5 @@
 import { LuSend, LuSquare, LuPaperclip } from "react-icons/lu";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import {
   FileAttachment,
   AttachedFile,
@@ -34,6 +34,21 @@ export function InputBar({
   error,
 }: InputBarProps) {
   const fileAttachRef = useRef<FileAttachmentRef | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const maxHeight = window.innerHeight * 0.5;
+    if (textarea.scrollHeight > maxHeight) {
+      textarea.style.height = `${maxHeight}px`;
+      textarea.style.overflowY = "auto";
+    } else {
+      textarea.style.height = `${textarea.scrollHeight}px`;
+      textarea.style.overflowY = "hidden";
+    }
+  }, [input]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -74,7 +89,7 @@ export function InputBar({
 
         {/* Floating input pill */}
         <div
-          className={`flex gap-1.5 items-center bg-slate-grey-900 border border-slate-grey-700 p-3 shadow-xl shadow-black/40 ${
+          className={`flex gap-1.5 items-end bg-slate-grey-900 border border-slate-grey-700 p-3 shadow-xl shadow-black/40 ${
             attachedFiles.length > 0
               ? "rounded-b-xl rounded-t-none"
               : "rounded-xl"
@@ -92,13 +107,14 @@ export function InputBar({
 
           {/* Text input */}
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isLoading ? "Generating…" : "Message…"}
             disabled={isLoading}
             rows={1}
-            className="flex-1 bg-transparent border-none outline-none resize-none font-body text-sm text-parchment-200 placeholder:text-slate-grey-500 disabled:opacity-40 py-1.5 leading-tight"
+            className="flex-1 bg-transparent border-none outline-none resize-none overflow-hidden font-body text-sm text-parchment-200 placeholder:text-slate-grey-500 disabled:opacity-40 py-1.5 leading-relaxed"
           />
 
           {/* Actions */}
