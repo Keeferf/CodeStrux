@@ -53,7 +53,7 @@ export function SettingsPanel({
         onDelete={deleteModel}
       />
 
-      <div>
+      <div className="mt-auto">
         <SectionHead label="hardware" />
         <HardwarePanel />
       </div>
