@@ -89,7 +89,7 @@ export function InputBar({
 
         {/* Floating input pill */}
         <div
-          className={`flex gap-1.5 items-end bg-slate-grey-900 border border-slate-grey-700 p-3 shadow-xl shadow-black/40 ${
+          className={`flex gap-1.5 items-center bg-slate-grey-900 border border-slate-grey-700 p-2 shadow-xl shadow-black/40 ${
             attachedFiles.length > 0
               ? "rounded-b-xl rounded-t-none"
               : "rounded-xl"
@@ -114,7 +114,7 @@ export function InputBar({
             placeholder={isLoading ? "Generating…" : "Message…"}
             disabled={isLoading}
             rows={1}
-            className="flex-1 bg-transparent border-none outline-none resize-none overflow-hidden font-body text-sm text-parchment-200 placeholder:text-slate-grey-500 disabled:opacity-40 py-1.5 leading-relaxed"
+            className="flex-1 bg-transparent border-none outline-none resize-none overflow-hidden font-body text-sm text-parchment-200 placeholder:text-slate-grey-500 disabled:opacity-40 py-2 leading-relaxed"
           />
 
           {/* Actions */}
