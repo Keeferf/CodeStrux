@@ -1,4 +1,4 @@
-import { LuSend, LuSquare } from "react-icons/lu";
+import { LuSend, LuSquare, LuPaperclip } from "react-icons/lu";
 import { useRef, useEffect } from "react";
 import {
   FileAttachment,
@@ -96,14 +96,14 @@ export function InputBar({
           }`}
         >
           {/* Paperclip trigger */}
-          {/* <button
+          <button
             onClick={() => fileAttachRef.current?.openFilePicker()}
             disabled={isLoading}
             className="flex items-center justify-center rounded-md p-2 border transition-all duration-200 text-slate-grey-500 border-slate-grey-700/60 hover:bg-indigo-smoke-700 hover:border-indigo-smoke-600 hover:text-parchment-100 disabled:opacity-40 disabled:cursor-default cursor-pointer"
             aria-label="Attach files"
           >
             <LuPaperclip size={14} />
-          </button> */}
+          </button>
 
           {/* Text input */}
           <textarea

@@ -1,7 +1,7 @@
 //! Tauri commands for RAG functionality
 
-use crate::rag::vector_storage::VectorStorage;
-use crate::rag::{DocumentMetadata, RAGConfig};
+use crate::rag::RAGState;
+use crate::rag::DocumentMetadata;
 use crate::chat::server::SERVER_PORT;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -14,6 +14,7 @@ use crate::chat::state::LocalChatState;
 pub async fn add_document_to_rag(
     app: AppHandle,
     chat_state: State<'_, LocalChatState>,
+    rag_state: State<'_, RAGState>,
     file_path: String,
     conversation_id: Option<String>,
 ) -> Result<(), String> {
@@ -57,10 +58,8 @@ pub async fn add_document_to_rag(
         embedding: None,
     };
     
-    // Get or create vector storage
-    let config = RAGConfig::default();
-    let vector_storage = VectorStorage::new(&app, config)
-        .map_err(|e| format!("Failed to initialize vector storage: {}", e))?;
+    // Reuse the shared VectorStorage connection from managed state
+    let vector_storage = rag_state.get_or_init(&app)?;
     
     // Get log path
     let log_path = app
@@ -85,12 +84,11 @@ pub async fn add_document_to_rag(
 pub async fn search_documents(
     app: AppHandle,
     chat_state: State<'_, LocalChatState>,
+    rag_state: State<'_, RAGState>,
     query: String,
     conversation_id: Option<String>,
 ) -> Result<Vec<crate::rag::SearchResult>, String> {
-    let config = RAGConfig::default();
-    let vector_storage = VectorStorage::new(&app, config)
-        .map_err(|e| format!("Failed to initialize vector storage: {}", e))?;
+    let vector_storage = rag_state.get_or_init(&app)?;
     
     let log_path = app
         .path()
@@ -113,12 +111,10 @@ pub async fn search_documents(
 #[tauri::command]
 pub fn delete_conversation_rag_documents(
     app: AppHandle,
+    rag_state: State<'_, RAGState>,
     conversation_id: String,
 ) -> Result<(), String> {
-    let config = RAGConfig::default();
-    let vector_storage = VectorStorage::new(&app, config)
-        .map_err(|e| format!("Failed to initialize vector storage: {}", e))?;
-    
+    let vector_storage = rag_state.get_or_init(&app)?;
     vector_storage.delete_conversation_documents(&conversation_id)?;
     Ok(())
 }
@@ -127,12 +123,10 @@ pub fn delete_conversation_rag_documents(
 #[tauri::command]
 pub fn delete_rag_document(
     app: AppHandle,
+    rag_state: State<'_, RAGState>,
     document_id: String,
 ) -> Result<(), String> {
-    let config = RAGConfig::default();
-    let vector_storage = VectorStorage::new(&app, config)
-        .map_err(|e| format!("Failed to initialize vector storage: {}", e))?;
-    
+    let vector_storage = rag_state.get_or_init(&app)?;
     vector_storage.delete_document(&document_id)?;
     Ok(())
 }
@@ -141,12 +135,9 @@ pub fn delete_rag_document(
 #[tauri::command]
 pub fn list_rag_documents(
     app: AppHandle,
+    rag_state: State<'_, RAGState>,
     conversation_id: Option<String>,
 ) -> Result<Vec<crate::rag::Document>, String> {
-    let config = RAGConfig::default();
-    let vector_storage = VectorStorage::new(&app, config)
-        .map_err(|e| format!("Failed to initialize vector storage: {}", e))?;
-    
+    let vector_storage = rag_state.get_or_init(&app)?;
     vector_storage.list_documents(conversation_id.as_deref())
 }
-

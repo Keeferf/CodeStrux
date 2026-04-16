@@ -11,6 +11,9 @@ pub mod commands;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Mutex;
+use tauri::AppHandle;
+use crate::rag::vector_storage::VectorStorage;
 
 /// Configuration for RAG
 #[derive(Clone)]
@@ -36,7 +39,35 @@ impl Default for RAGConfig {
     }
 }
 
-/// Document with metadata
+pub struct RAGState {
+    inner: Mutex<Option<VectorStorage>>,
+}
+
+impl RAGState {
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(None),
+        }
+    }
+    pub fn get_or_init(&self, app: &AppHandle) -> Result<VectorStorage, String> {
+        let mut guard = self.inner.lock().unwrap();
+        if let Some(vs) = guard.as_ref() {
+            eprintln!("[RAG] Reusing existing VectorStorage connection");
+            return Ok(vs.clone());
+        }
+        eprintln!("[RAG] Initialising VectorStorage for the first time");
+        let vs = VectorStorage::new(app, RAGConfig::default())?;
+        *guard = Some(vs.clone());
+        Ok(vs)
+    }
+}
+
+impl Default for RAGState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
     pub id: String,

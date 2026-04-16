@@ -13,6 +13,7 @@ pub mod rag;  // Add RAG module
 use tauri::Manager;
 use download::DownloadState;
 use chat::LocalChatState;
+use rag::RAGState;
 
 /// Builds and runs the Tauri application.
 ///
@@ -27,6 +28,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(DownloadState::default())
         .manage(LocalChatState::default())
+        .manage(RAGState::default())   // Single shared VectorStorage connection
         .invoke_handler(tauri::generate_handler![
             // hardware
             hardware::get_hardware_info,
@@ -55,6 +57,7 @@ pub fn run() {
             rag::commands::search_documents,
             rag::commands::delete_conversation_rag_documents,
             rag::commands::list_rag_documents,
+            rag::commands::delete_rag_document,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
