@@ -8,7 +8,7 @@ mod hardware;
 mod chat;
 mod model_storage;
 pub mod chat_storage;
-pub mod rag;  // Add RAG module
+pub mod rag;
 
 use tauri::Manager;
 use download::DownloadState;
@@ -28,7 +28,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(DownloadState::default())
         .manage(LocalChatState::default())
-        .manage(RAGState::default())   // Single shared VectorStorage connection
+        .manage(RAGState::default())
         .invoke_handler(tauri::generate_handler![
             // hardware
             hardware::get_hardware_info,
@@ -43,7 +43,8 @@ pub fn run() {
             chat::commands::load_local_model,
             chat::commands::unload_local_model,
             chat::commands::start_local_chat,
-            chat::commands::start_local_chat_with_rag,  // Add RAG-enhanced chat
+            chat::commands::start_local_chat_with_rag,
+            chat::commands::start_local_chat_with_attachments,
             chat::commands::stop_local_chat,
             // chat persistence
             chat_storage::create_conversation,
@@ -62,10 +63,14 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
                 let app = window.app_handle();
-                // Only kill the server when the last window is gone
                 if app.webview_windows().is_empty() {
                     if let Some(state) = app.try_state::<LocalChatState>() {
-                        if let Some(child) = state.server.lock().unwrap().take() as Option<tauri_plugin_shell::process::CommandChild> {
+                        // Kill chat server
+                        if let Some(child) = state.server.lock().unwrap().take() {
+                            let _ = child.kill();
+                        }
+                        // Kill embedding server
+                        if let Some(child) = state.embedding_server.lock().unwrap().take() {
                             let _ = child.kill();
                         }
                     }

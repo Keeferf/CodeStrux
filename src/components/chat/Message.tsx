@@ -2,10 +2,37 @@ import type { ChatMessage } from "../../types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
+import { LuFileCode, LuFileText } from "react-icons/lu";
 
 interface MessageProps {
   message: ChatMessage;
 }
+
+const getFileIcon = (fileName: string) => {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  return ext &&
+    [
+      "js",
+      "ts",
+      "jsx",
+      "tsx",
+      "py",
+      "java",
+      "c",
+      "cpp",
+      "cs",
+      "go",
+      "rs",
+      "php",
+      "rb",
+      "swift",
+      "kt",
+    ].includes(ext) ? (
+    <LuFileCode size={12} />
+  ) : (
+    <LuFileText size={12} />
+  );
+};
 
 export function Message({ message }: MessageProps) {
   if (message.role === "system") {
@@ -34,7 +61,25 @@ export function Message({ message }: MessageProps) {
           }`}
         >
           {isUser ? (
-            <span className="whitespace-pre-wrap">{message.content}</span>
+            <>
+              <span className="whitespace-pre-wrap">{message.content}</span>
+              {/* Render attached file badges */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {message.attachments.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center gap-1 px-2 py-1 bg-slate-grey-800/80 rounded-md border border-slate-grey-700 text-xs"
+                    >
+                      <span className="text-slate-grey-400">
+                        {getFileIcon(file.name)}
+                      </span>
+                      <span className="truncate max-w-37.5">{file.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
             parts?.map((part, i) => {
               if (part.startsWith("```")) {
@@ -119,7 +164,6 @@ export function Message({ message }: MessageProps) {
                       );
                     },
                     code({ className, children, ...props }) {
-                      // Inline code (not a full code block)
                       return (
                         <code
                           className="bg-slate-grey-800 rounded px-1.5 py-0.5 text-parchment-200 font-mono text-sm"

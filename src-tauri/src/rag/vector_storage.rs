@@ -85,7 +85,6 @@ impl VectorStorage {
         {
             let inner = self.inner.lock().unwrap();
             config = inner.config.clone();
-            // Chunk the document
             chunks = if doc.metadata.file_type == "rs" || 
                         doc.metadata.file_type == "py" || 
                         doc.metadata.file_type == "js" ||
@@ -100,7 +99,6 @@ impl VectorStorage {
             };
         }
         
-        // Generate embeddings for chunks (this can be done outside the lock)
         let embeddings = crate::rag::embedding::batch_generate_embeddings(
             client,
             &chunks,
@@ -108,7 +106,6 @@ impl VectorStorage {
             _log_path,
         ).await?;
         
-        // Store document metadata - convert u64 to i64 for SQLite
         let size_bytes_i64 = doc.metadata.size_bytes as i64;
         let additional_json = serde_json::to_string(&doc.metadata.additional)
             .unwrap_or_else(|_| "{}".to_string());
@@ -129,7 +126,6 @@ impl VectorStorage {
             ],
         ).map_err(|e| format!("Failed to insert document: {}", e))?;
         
-        // Store chunks and embeddings
         for (i, (chunk, embedding)) in chunks.iter().zip(embeddings.iter()).enumerate() {
             let embedding_blob = inner.serialize_embedding(embedding);
             inner.conn.execute(
@@ -151,7 +147,6 @@ impl VectorStorage {
         conversation_id: Option<&str>,
         _log_path: &PathBuf,
     ) -> Result<Vec<SearchResult>, String> {
-        // Generate embedding for query (outside the lock)
         let query_embedding = crate::rag::embedding::generate_embedding(
             client,
             query,
@@ -186,7 +181,7 @@ impl VectorStorage {
                 let similarity = inner.cosine_similarity(&query_embedding, &embedding);
                 
                 if similarity >= inner.config.similarity_threshold {
-                    let doc_info = inner.get_document_info(&doc_id, conversation_id)?;
+                    let doc_info = inner.get_document_info(&doc_id, Some(conv_id))?;
                     results.push(SearchResult {
                         document: doc_info,
                         similarity,
@@ -227,7 +222,6 @@ impl VectorStorage {
             }
         }
         
-        // Sort by similarity and take top_k
         results.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap());
         results.truncate(inner.config.top_k);
         
@@ -341,9 +335,7 @@ impl VectorStorage {
     }
 }
 
-// Implement these methods on VectorStorageInner
 impl VectorStorageInner {
-    /// Serialize embedding vector to bytes for storage
     fn serialize_embedding(&self, embedding: &[f32]) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(embedding.len() * 4);
         for &value in embedding {
@@ -352,7 +344,6 @@ impl VectorStorageInner {
         bytes
     }
     
-    /// Deserialize embedding from bytes
     fn deserialize_embedding(&self, bytes: &[u8]) -> Vec<f32> {
         bytes
             .chunks_exact(4)
@@ -360,7 +351,6 @@ impl VectorStorageInner {
             .collect()
     }
     
-    /// Calculate cosine similarity between two vectors
     fn cosine_similarity(&self, a: &[f32], b: &[f32]) -> f32 {
         let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
         let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
@@ -373,12 +363,10 @@ impl VectorStorageInner {
         }
     }
     
-    /// Generate a snippet around where the query matches
     fn generate_snippet(&self, text: &str, query: &str) -> String {
         let query_lower = query.to_lowercase();
         let words: Vec<&str> = query_lower.split_whitespace().collect();
         
-        // Find the best match position
         let text_lower = text.to_lowercase();
         let mut best_pos = None;
         
@@ -400,7 +388,6 @@ impl VectorStorageInner {
                 format!("{}...", snippet)
             }
         } else {
-            // No match found, just take first 200 chars
             if text.len() > 200 {
                 format!("{}...", &text[..200])
             } else {
@@ -409,7 +396,6 @@ impl VectorStorageInner {
         }
     }
     
-    /// Helper to get document info
     fn get_document_info(&self, doc_id: &str, conversation_id: Option<&str>) -> Result<Document, String> {
         let mut stmt = self.conn.prepare(
             "SELECT content, filename, file_type, created_at, size_bytes, additional_metadata

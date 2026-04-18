@@ -137,6 +137,7 @@ export default function App() {
           id: m.id,
           role: m.role as ChatMessage["role"],
           content: m.content,
+          // Note: attachments are not stored in DB, so we don't restore them
         })),
       );
     } catch {
@@ -202,7 +203,7 @@ export default function App() {
     handleStop();
     setMessages([]);
     setError(null);
-    setAttachedFiles([]); // Clear attached files when switching sessions
+    setAttachedFiles([]);
     activeConvId.current = null;
     streamedReply.current = "";
   };
@@ -275,22 +276,6 @@ export default function App() {
     setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
-  // Helper to format attached files for the AI context
-  const formatAttachedFilesForContext = (files: AttachedFile[]): string => {
-    if (files.length === 0) return "";
-
-    const fileContext = files
-      .map(
-        (file) =>
-          `\n\n--- File: ${file.name} (${(file.size / 1024).toFixed(1)} KB) ---\n` +
-          `\`\`\`\n${file.content}\n\`\`\`\n` +
-          `--- End of ${file.name} ---`,
-      )
-      .join("\n");
-
-    return `\n\n## Attached Files:\n${fileContext}\n\n## User Question:\n`;
-  };
-
   // ── Chat handlers ─────────────────────────────────────────────────────────
 
   const handleSend = async () => {
@@ -306,16 +291,11 @@ export default function App() {
 
     setError(null);
 
-    // Combine user input with attached files
-    const fileContext = formatAttachedFilesForContext(attachedFiles);
     const userText = input.trim();
-    const fullUserMessage = fileContext
-      ? `${fileContext}${userText || "Please analyze the attached files."}`
-      : userText;
+    const currentAttachedFiles = [...attachedFiles]; // capture for error recovery
 
     // Clear input and attachments immediately
     setInput("");
-    const currentAttachedFiles = [...attachedFiles]; // Save for potential error recovery
     setAttachedFiles([]);
 
     // ── 1. Ensure a DB conversation exists ────────────────────────────────
@@ -337,20 +317,20 @@ export default function App() {
         }
       } catch {
         setError("Could not create conversation record.");
-        setAttachedFiles(currentAttachedFiles); // Restore files on error
+        setAttachedFiles(currentAttachedFiles); // restore on error
         return;
       }
     }
 
-    // ── 2. Persist user message ───────────────────────────────────────────
+    // ── 2. Persist user message (without file content embedded) ────────────
     try {
+      // We store the user's raw text only; attachments are handled separately by the backend.
       const savedUser = await invoke<StoredMessage>("append_message", {
         conversationId: convId,
         role: "user",
-        content: fullUserMessage,
+        content: userText || "Please analyze the attached files.",
       });
 
-      // Title: first 60 chars of the first user message (without file context)
       if (isFirstMessage) {
         const title = (userText || "File analysis").slice(0, 60);
         invoke("rename_conversation", { conversationId: convId, title }).catch(
@@ -364,7 +344,8 @@ export default function App() {
       const userMsg: ChatMessage = {
         id: savedUser.id,
         role: "user",
-        content: fullUserMessage,
+        content: userText || "Please analyze the attached files.",
+        attachments: currentAttachedFiles, // keep for UI display
       };
       const assistantPlaceholderId = Date.now();
       const assistantMsg: ChatMessage = {
@@ -377,7 +358,7 @@ export default function App() {
       setIsLoading(true);
       streamedReply.current = "";
 
-      // Build history for AI (without file context in history since it's already in user message)
+      // Build history for AI – only role/content, no attachments
       const history = [...messages, userMsg]
         .filter((m) => m.role !== "system")
         .map((m) => ({
@@ -408,7 +389,6 @@ export default function App() {
           chatUnlistensRef.current.forEach((fn) => fn());
           chatUnlistensRef.current = [];
 
-          // ── 4. Persist assistant reply ────────────────────────────────────
           if (streamedReply.current.trim()) {
             try {
               const savedAssistant = await invoke<StoredMessage>(
@@ -450,14 +430,17 @@ export default function App() {
 
       chatUnlistensRef.current = unlistens;
 
-      await invoke("start_local_chat", { messages: history });
+      await invoke("start_local_chat_with_attachments", {
+        messages: history,
+        conversationId: currentConvId,
+        attachments: currentAttachedFiles,
+      });
     } catch (e) {
       setError(typeof e === "string" ? e : "Failed to start chat.");
       setIsLoading(false);
       chatUnlistensRef.current.forEach((fn) => fn());
       chatUnlistensRef.current = [];
       streamedReply.current = "";
-      // Restore files on error
       setAttachedFiles(currentAttachedFiles);
     }
   };

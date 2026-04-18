@@ -11,6 +11,9 @@ pub struct Message {
     /// `"user"`, `"assistant"`, or `"system"`.
     pub role: String,
     pub content: String,
+    /// Optional file attachments for user messages.
+    #[serde(default)]
+    pub attachments: Option<Vec<AttachedFile>>,
 }
 
 /// Metadata for the model currently running in llama-server.
@@ -20,4 +23,14 @@ pub struct LoadedModelInfo {
     pub filename: String,
     /// Which backend is running: `"vulkan"` or `"cpu"`.
     pub backend: String,
+}
+
+/// A file attached to a user message.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AttachedFile {
+    pub id: String,
+    pub name: String,
+    pub r#type: String,
+    pub size: u64,
+    pub content: String,
 }

@@ -37,7 +37,8 @@
       "icons/icon.png"
     ],
     "resources": {
-      "bin/*.dll": "./"
+      "bin/*.dll": "./",
+      "resources/models/**/*": "./models/"
     },
     "windows": {
       "nsis": {

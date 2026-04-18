@@ -28,16 +28,15 @@ pub fn format_rag_context(results: &[SearchResult]) -> String {
 
 /// Enhance a user query with RAG context
 pub async fn enhance_with_rag(
-    _app: &AppHandle,  // Add underscore
+    _app: &AppHandle,
     vector_storage: &VectorStorage,
     client: &reqwest::Client,
     server_port: u16,
     query: &str,
     conversation_id: Option<&str>,
-    _config: &RAGConfig,  // Add underscore
+    _config: &RAGConfig,
     log_path: &PathBuf,
 ) -> Result<RAGContext, String> {
-    // Search for relevant chunks
     let results = vector_storage
         .search(client, server_port, query, conversation_id, log_path)
         .await?;

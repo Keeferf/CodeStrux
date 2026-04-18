@@ -1,20 +1,19 @@
-//! Embedding generation using nomic-embed via llama-server
+//! Embedding generation using the dedicated embedding server.
 
-// Remove unused imports - keep only what's needed
 use crate::chat::logging::write_log;
 use std::path::Path;
 
-/// Generate embeddings using nomic-embed via llama-server
+/// Generate embeddings using the dedicated embedding server.
 pub async fn generate_embedding(
     client: &reqwest::Client,
     text: &str,
-    server_port: u16,
+    server_port: u16,   // now the embedding server port
 ) -> Result<Vec<f32>, String> {
     let url = format!("http://127.0.0.1:{}/v1/embeddings", server_port);
     
     let request_body = serde_json::json!({
         "input": text,
-        "model": "nomic-embed",
+        "model": "nomic-embed",   // the model name as known to the server
     });
     
     let response = client
@@ -47,22 +46,19 @@ pub async fn generate_embedding(
     Ok(embedding)
 }
 
-/// Batch generate embeddings for multiple texts
+/// Batch generate embeddings for multiple texts.
 pub async fn batch_generate_embeddings(
     client: &reqwest::Client,
     texts: &[String],
     server_port: u16,
     log_path: &Path,
 ) -> Result<Vec<Vec<f32>>, String> {
-    write_log(log_path, &format!("Generating {} embeddings", texts.len()));
+    write_log(log_path, &format!("Generating {} embeddings using embedding server", texts.len()));
     
     let mut embeddings = Vec::new();
-    
-    // Process in batches to avoid overwhelming the server
     let batch_size = 10;
     for chunk in texts.chunks(batch_size) {
         let mut batch_embeddings = Vec::new();
-        
         for text in chunk {
             match generate_embedding(client, text, server_port).await {
                 Ok(emb) => batch_embeddings.push(emb),
@@ -72,12 +68,8 @@ pub async fn batch_generate_embeddings(
                 }
             }
         }
-        
         embeddings.extend(batch_embeddings);
-        
-        // Small delay between batches
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
     }
-    
     Ok(embeddings)
 }
